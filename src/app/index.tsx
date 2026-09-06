@@ -12,6 +12,7 @@ import { useUi } from '../store/ui';
 import { Doto, Label } from '../components/Text';
 
 const MUSCLES: [string, string][] = [['CHEST', 'chest'], ['BACK', 'back'], ['QUAD', 'quads'], ['HAM', 'hamstrings'], ['GLUTE', 'glutes'], ['DELT', 'delts'], ['BI', 'biceps'], ['TRI', 'triceps'], ['CALF', 'calves'], ['ABS', 'abs']];
+const FULL: Record<string, string> = { quads: 'quadriceps', hamstrings: 'hamstrings', delts: 'deltoids', biceps: 'biceps', triceps: 'triceps', calves: 'calves', glutes: 'glutes', chest: 'chest', back: 'back', abs: 'abs' };
 
 type Recent = Awaited<ReturnType<typeof recentSessions>>[number];
 
@@ -66,7 +67,7 @@ export default function Home() {
           <Label>This week · hard sets</Label>
           <Pressable onPress={() => setEditing((v) => !v)} hitSlop={12}><Label color={editing ? t.accent : t.green}>{editing ? 'Done' : '10–20 band'}</Label></Pressable>
         </View>
-        <DotBars items={MUSCLES.filter(([, key]) => shown.includes(key)).map(([label, key]) => ({ label, value: volume[key] ?? 0 }))} />
+        <DotBars items={MUSCLES.filter(([, key]) => shown.includes(key)).map(([label, key]) => ({ label, full: FULL[key], value: volume[key] ?? 0 }))} />
         {editing && (
           <View style={s.chips}>
             {MUSCLES.map(([label, key]) => {

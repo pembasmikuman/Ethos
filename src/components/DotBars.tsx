@@ -1,18 +1,23 @@
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { useTheme } from '../lib/theme';
 import { Label } from './Text';
 
-type Props = { items: { label: string; value: number }[]; max?: number; band?: [number, number] };
+type Props = { items: { label: string; full?: string; value: number }[]; max?: number; band?: [number, number] };
 
 /** Dot columns. Rows in `band` tint green. */
 export function DotBars({ items, max = 20, band = [10, 20] }: Props) {
   const t = useTheme();
-  const rows = 10, dot = 4, gap = 2, colW = 22;
+  const [width, setWidth] = useState(0);
+  // Wide layouts (iPad, few columns) get bigger dots and full names.
+  const per = width / Math.max(items.length, 1);
+  const wide = per >= 84;
+  const rows = 10, dot = wide ? 5 : 4, gap = wide ? 3 : 2, colW = wide ? 28 : 22;
   const h = rows * (dot * 2 + gap);
   const perRow = max / rows;
   return (
-    <View style={s.wrap}>
+    <View style={s.wrap} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
       {items.map((it) => {
         const lit = Math.round(it.value / perRow);
         return (
@@ -25,7 +30,7 @@ export function DotBars({ items, max = 20, band = [10, 20] }: Props) {
                 return <Circle key={r} cx={colW / 2} cy={h - dot - r * (dot * 2 + gap)} r={on ? dot : dot / 2} fill={fill} />;
               })}
             </Svg>
-            <Label size={9}>{it.label}</Label>
+            <Label size={wide ? 10 : 9}>{wide ? it.full ?? it.label : it.label}</Label>
           </View>
         );
       })}
@@ -34,6 +39,6 @@ export function DotBars({ items, max = 20, band = [10, 20] }: Props) {
 }
 
 const s = StyleSheet.create({
-  wrap: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+  wrap: { flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'flex-end' },
   col: { alignItems: 'center', gap: 8 },
 });
