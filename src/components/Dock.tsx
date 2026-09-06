@@ -128,6 +128,11 @@ export function Dock() {
 
   return (
     <Animated.View pointerEvents={hidden ? 'none' : 'box-none'} style={[s.wrap, { bottom: insets.bottom + 10 }, wrapStyle]}>
+      {path === '/exercises' && (
+        <AnimatedPressable entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)} onPress={() => { tapHaptic(); router.push('/exercise/new'); }} style={[s.fab, { backgroundColor: t.accent }]}>
+          <Svg width={26} height={26} viewBox="0 0 24 24" fill="none"><Path d="M12 5v14M5 12h14" stroke={t.bg} strokeWidth={2.2} strokeLinecap="round" /></Svg>
+        </AnimatedPressable>
+      )}
       <GestureDetector gesture={pan}>
         <AnimatedBlur layout={LinearTransition.springify().damping(26).stiffness(320)} intensity={40} tint={scheme === 'light' ? 'light' : 'dark'} style={[s.pill, { borderColor: t.line }]}>
           <Animated.View style={[s.highlight, { backgroundColor: glass, borderColor: t.line }, highlight]} />
@@ -154,7 +159,8 @@ export function Dock() {
 }
 
 const s = StyleSheet.create({
-  wrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
+  wrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: 12 },
+  fab: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
   pill: { flexDirection: 'row', borderRadius: 28, borderWidth: 1, overflow: 'hidden', paddingHorizontal: PAD },
   highlight: { position: 'absolute', left: PAD, top: 4, width: ITEM_W, height: 48, borderRadius: 24, borderWidth: 1 },
   item: { width: ITEM_W, height: 56, alignItems: 'center', justifyContent: 'center', gap: 3 },
