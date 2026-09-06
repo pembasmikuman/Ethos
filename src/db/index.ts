@@ -1,6 +1,6 @@
 import { openDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
 import { migrate } from './migrations';
-import { seed } from './seed';
+import { seed, seedRoutines } from './seed';
 
 let dbPromise: Promise<SQLiteDatabase> | null = null;
 
@@ -11,6 +11,7 @@ export function getDb(): Promise<SQLiteDatabase> {
       const db = await openDatabaseAsync('ethos.db');
       await migrate(db);
       await seed(db);
+      await seedRoutines(db);
       return db;
     })();
   }

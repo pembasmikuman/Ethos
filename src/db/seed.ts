@@ -67,3 +67,25 @@ export async function seed(db: SQLiteDatabase): Promise<void> {
     }
   });
 }
+
+const ROUTINES: [string, string, string[]][] = [
+  ['push-a', 'Push A', ['bench', 'incline-db', 'machine-press', 'lateral-raise', 'pushdown']],
+  ['pull-a', 'Pull A', ['deadlift', 'lat-pulldown', 'cable-row', 'face-pull', 'db-curl']],
+  ['legs', 'Legs', ['squat', 'rdl', 'leg-press', 'leg-curl', 'calf-raise']],
+];
+
+export async function seedRoutines(db: SQLiteDatabase): Promise<void> {
+  const row = await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM routines');
+  if ((row?.n ?? 0) > 0) return;
+  await db.withTransactionAsync(async () => {
+    for (const [id, name, exs] of ROUTINES) {
+      await db.runAsync('INSERT INTO routines (id, name) VALUES (?, ?)', [id, name]);
+      for (let i = 0; i < exs.length; i++) {
+        await db.runAsync(
+          'INSERT INTO routine_exercises (id, routine_id, exercise_id, order_index, target_sets) VALUES (?, ?, ?, ?, 3)',
+          [`${id}-${exs[i]}`, id, exs[i], i],
+        );
+      }
+    }
+  });
+}

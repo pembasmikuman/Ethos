@@ -1,44 +1,82 @@
-import { useEffect, useState } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
-import { Stack } from 'expo-router';
-import { getDb, type Exercise } from '../db';
-import { colors } from '../lib/theme';
+import { useCallback, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { listRoutines, recentSessions, type Routine } from '../db/queries';
+import { useTheme } from '../lib/theme';
+import { useWorkout } from '../store/workout';
+import { Doto, Label } from '../components/Text';
+
+type Recent = Awaited<ReturnType<typeof recentSessions>>[number];
 
 export default function Home() {
-  const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const t = useTheme();
+  const insets = useSafeAreaInsets();
+  const start = useWorkout((s) => s.start);
+  const [routines, setRoutines] = useState<Routine[]>([]);
+  const [recent, setRecent] = useState<Recent[]>([]);
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    getDb()
-      .then((db) => db.getAllAsync<Exercise>('SELECT * FROM exercises ORDER BY primary_muscle, name'))
-      .then(setExercises)
-      .catch((e) => setError(String(e)));
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      listRoutines().then(setRoutines);
+      recentSessions().then(setRecent);
+    }, []),
+  );
+
+  const go = async (r: Routine) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await start(r);
+      router.push('/workout');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const today = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' });
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen options={{ title: 'Ethos' }} />
-      {error && <Text style={styles.error}>{error}</Text>}
-      <FlatList
-        data={exercises}
-        keyExtractor={(e) => e.id}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.name}>{item.name}</Text>
-            <Text style={styles.meta}>
-              {item.primary_muscle} · {item.target_rep_min}–{item.target_rep_max} reps · {item.default_rest_seconds}s
-            </Text>
+    <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 }]}>
+      <View style={s.head}>
+        <Doto size={40}>ETHOS</Doto>
+        <Label>{today}</Label>
+      </View>
+
+      <Label style={s.section}>Routines</Label>
+      {routines.map((r) => (
+        <Pressable
+          key={r.id}
+          onPress={() => go(r)}
+          style={({ pressed }) => [s.card, { backgroundColor: t.card, borderColor: t.line, opacity: pressed ? 0.85 : 1 }]}
+        >
+          <Doto size={28}>{r.name.toUpperCase()}</Doto>
+          <Label color={t.accent}>Start</Label>
+        </Pressable>
+      ))}
+
+      {recent.length > 0 && <Label style={s.section}>Recent</Label>}
+      {recent.map((r) => {
+        const mins = r.end_time ? Math.round((new Date(r.end_time).getTime() - new Date(r.start_time).getTime()) / 60000) : 0;
+        const day = new Date(r.start_time).toLocaleDateString('en-GB', { weekday: 'short' });
+        return (
+          <View key={r.id} style={[s.row, { borderBottomColor: t.line }]}>
+            <Doto size={20} style={{ flex: 1 }}>{r.title.toUpperCase()}</Doto>
+            <Label color={t.dim}>{day}</Label>
+            <Label>{mins} min</Label>
+            <Label>{r.sets} sets</Label>
           </View>
-        )}
-      />
-    </View>
+        );
+      })}
+    </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg, padding: 12 },
-  card: { backgroundColor: colors.card, borderRadius: 10, padding: 14, marginBottom: 8 },
-  name: { color: colors.text, fontSize: 17, fontWeight: '600' },
-  meta: { color: colors.muted, fontSize: 13, marginTop: 4 },
-  error: { color: '#EF4444', padding: 12 },
+const s = StyleSheet.create({
+  page: { paddingHorizontal: 16, gap: 8 },
+  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 4, paddingBottom: 12 },
+  section: { paddingHorizontal: 4, paddingTop: 12, paddingBottom: 4 },
+  card: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 18, borderRadius: 16, borderWidth: 1, minHeight: 64 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, minHeight: 44 },
 });
