@@ -1,5 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { listRoutines, removeRoutineExercise, renameRoutine, reorderRoutine, routineExerciseRows, setTargetSets, type RoutineExercise } from '../../db/queries';
@@ -8,12 +10,49 @@ import { tapHaptic } from '../../lib/rest';
 import { Doto, Label } from '../../components/Text';
 import { DOCK_HEIGHT } from '../../components/Dock';
 
+const H = 64;
+const SNAP = { damping: 26, stiffness: 320, mass: 1 };
+
+type DragProps = { index: number; count: number; active: SharedValue<number>; dy: SharedValue<number>; onDrop: (from: number, to: number) => void; onGrab: () => void; children: ReactNode };
+
+function DragRow({ index, count, active, dy, onDrop, onGrab, children }: DragProps) {
+  const clamp = (n: number) => Math.max(0, Math.min(count - 1, n));
+  const pan = Gesture.Pan()
+    .activateAfterLongPress(150)
+    .onStart(() => { active.value = index; dy.value = 0; runOnJS(onGrab)(); })
+    .onUpdate((e) => { dy.value = e.translationY; })
+    .onFinalize(() => {
+      const to = clamp(index + Math.round(dy.value / H));
+      active.value = -1;
+      dy.value = 0;
+      runOnJS(onDrop)(index, to);
+    });
+  const style = useAnimatedStyle(() => {
+    if (active.value === index) return { transform: [{ translateY: dy.value }, { scale: 1.02 }], zIndex: 10 };
+    if (active.value === -1) return { transform: [{ translateY: 0 }, { scale: 1 }], zIndex: 0 };
+    const target = clamp(active.value + Math.round(dy.value / H));
+    const shift = active.value < index && index <= target ? -H : target <= index && index < active.value ? H : 0;
+    return { transform: [{ translateY: withSpring(shift, SNAP) }, { scale: 1 }], zIndex: 0 };
+  });
+  return (
+    <Animated.View style={style}>
+      {children}
+      <GestureDetector gesture={pan}>
+        <View style={s.handle}><Label size={16}>≡</Label></View>
+      </GestureDetector>
+    </Animated.View>
+  );
+}
+
 export default function RoutineEditor() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
   const [rows, setRows] = useState<RoutineExercise[]>([]);
+  const [dragging, setDragging] = useState(false);
+  const active = useSharedValue(-1);
+  const dy = useSharedValue(0);
 
   const load = async () => {
     setRows(await routineExerciseRows(id));
@@ -21,11 +60,12 @@ export default function RoutineEditor() {
   };
   useFocusEffect(useCallback(() => { load(); }, [id]));
 
-  const move = async (i: number, d: -1 | 1) => {
-    const j = i + d;
-    if (j < 0 || j >= rows.length) return;
+  const grab = () => { setDragging(true); tapHaptic(); };
+  const drop = async (from: number, to: number) => {
+    setDragging(false);
+    if (from === to) return;
     const next = [...rows];
-    [next[i], next[j]] = [next[j], next[i]];
+    next.splice(to, 0, next.splice(from, 1)[0]);
     setRows(next);
     tapHaptic();
     await reorderRoutine(next.map((r) => r.re_id));
@@ -47,7 +87,7 @@ export default function RoutineEditor() {
     ]);
 
   return (
-    <ScrollView style={{ backgroundColor: t.bg }} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
+    <ScrollView style={{ backgroundColor: t.bg }} scrollEnabled={!dragging} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
       <View style={s.head}>
         <Pressable onPress={() => router.back()} hitSlop={12}><Label color={t.accent}>‹ Routines</Label></Pressable>
         <Label>{rows.length} exercises</Label>
@@ -66,7 +106,8 @@ export default function RoutineEditor() {
       <Label style={s.section}>Exercises</Label>
       {rows.length === 0 && <Label color={t.dim} style={{ paddingHorizontal: 4 }}>Empty. Add one below.</Label>}
       {rows.map((r, i) => (
-        <Pressable key={r.re_id} onLongPress={() => confirmRemove(r)} style={[s.row, { borderBottomColor: t.line }]}>
+        <DragRow key={r.re_id} index={i} count={rows.length} active={active} dy={dy} onDrop={drop} onGrab={grab}>
+        <Pressable onLongPress={() => confirmRemove(r)} style={[s.row, { borderBottomColor: t.line, backgroundColor: t.bg }]}>
           <View style={{ flex: 1, gap: 4 }}>
             <Doto size={20}>{r.name.toUpperCase()}</Doto>
             <Label color={t.dim}>{r.primary_muscle} · {r.target_rep_min}–{r.target_rep_max} reps</Label>
@@ -76,13 +117,11 @@ export default function RoutineEditor() {
             <Doto size={22}>{r.target_sets}</Doto>
             <Pressable onPress={() => sets(r, 1)} hitSlop={8} style={s.key}><Doto size={20} color={t.mute}>+</Doto></Pressable>
           </View>
-          <View style={{ gap: 2 }}>
-            <Pressable onPress={() => move(i, -1)} hitSlop={6} style={s.key}><Label color={i === 0 ? t.dim : t.text}>▲</Label></Pressable>
-            <Pressable onPress={() => move(i, 1)} hitSlop={6} style={s.key}><Label color={i === rows.length - 1 ? t.dim : t.text}>▼</Label></Pressable>
-          </View>
+          <View style={{ width: 32 }} />
         </Pressable>
+        </DragRow>
       ))}
-      <Label color={t.dim} style={{ paddingHorizontal: 4, paddingTop: 8 }}>Sets per exercise · hold to replace or remove</Label>
+      <Label color={t.dim} style={{ paddingHorizontal: 4, paddingTop: 8 }}>Drag ≡ to reorder · hold name to replace or remove</Label>
 
       <Pressable onPress={() => router.push(`/routines/pick?routine=${id}`)} style={({ pressed }) => [s.add, { borderColor: t.line, opacity: pressed ? 0.7 : 1 }]}>
         <Label color={t.accent}>+ Add exercise</Label>
@@ -96,7 +135,8 @@ const s = StyleSheet.create({
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 4, paddingBottom: 12 },
   section: { paddingHorizontal: 4, paddingTop: 18, paddingBottom: 8 },
   name: { fontFamily: fonts.doto, fontSize: 32, paddingVertical: 8, paddingHorizontal: 4, borderBottomWidth: 1 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, minHeight: 64 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 4, borderBottomWidth: 1, height: H },
+  handle: { position: 'absolute', right: 0, top: 0, width: 44, height: H, alignItems: 'center', justifyContent: 'center' },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   key: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   add: { marginTop: 16, borderWidth: 1, borderStyle: 'dashed', borderRadius: 12, padding: 18, alignItems: 'center' },
