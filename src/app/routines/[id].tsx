@@ -40,8 +40,9 @@ export default function RoutineEditor() {
   };
 
   const confirmRemove = (r: RoutineExercise) =>
-    Alert.alert('Remove exercise?', r.name, [
+    Alert.alert(r.name, 'Replace keeps its slot and set count.', [
       { text: 'Cancel', style: 'cancel' },
+      { text: 'Replace', onPress: () => router.push(`/routines/pick?routine=${id}&replace=${r.re_id}`) },
       { text: 'Remove', style: 'destructive', onPress: async () => { await removeRoutineExercise(r.re_id); load(); } },
     ]);
 
@@ -81,7 +82,7 @@ export default function RoutineEditor() {
           </View>
         </Pressable>
       ))}
-      <Label color={t.dim} style={{ paddingHorizontal: 4, paddingTop: 8 }}>Sets per exercise · hold to remove</Label>
+      <Label color={t.dim} style={{ paddingHorizontal: 4, paddingTop: 8 }}>Sets per exercise · hold to replace or remove</Label>
 
       <Pressable onPress={() => router.push(`/routines/pick?routine=${id}`)} style={({ pressed }) => [s.add, { borderColor: t.line, opacity: pressed ? 0.7 : 1 }]}>
         <Label color={t.accent}>+ Add exercise</Label>

@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { addRoutineExercise, allExercises, routineExerciseRows } from '../../db/queries';
+import { addRoutineExercise, allExercises, replaceRoutineExercise, routineExerciseRows } from '../../db/queries';
 import type { Exercise } from '../../db';
 import { fonts, useTheme } from '../../lib/theme';
 import { Doto, Label } from '../../components/Text';
 import { DOCK_HEIGHT } from '../../components/Dock';
 
 export default function PickExercise() {
-  const { routine } = useLocalSearchParams<{ routine: string }>();
+  const { routine, replace } = useLocalSearchParams<{ routine: string; replace?: string }>();
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const [all, setAll] = useState<Exercise[]>([]);
@@ -22,7 +22,8 @@ export default function PickExercise() {
   }, [routine]);
 
   const pick = async (e: Exercise) => {
-    await addRoutineExercise(routine, e.id);
+    if (replace) await replaceRoutineExercise(replace, e.id);
+    else await addRoutineExercise(routine, e.id);
     router.back();
   };
 
@@ -33,7 +34,7 @@ export default function PickExercise() {
   return (
     <ScrollView style={{ backgroundColor: t.bg }} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
       <View style={s.head}>
-        <Doto size={32}>ADD EXERCISE</Doto>
+        <Doto size={32}>{replace ? 'REPLACE WITH' : 'ADD EXERCISE'}</Doto>
         <Pressable onPress={() => router.back()} hitSlop={12}><Label color={t.accent}>Cancel</Label></Pressable>
       </View>
       <TextInput value={q} onChangeText={setQ} placeholder="search" placeholderTextColor={t.dim} autoCorrect={false} style={[s.search, { color: t.text, borderColor: t.line, backgroundColor: t.card }]} />

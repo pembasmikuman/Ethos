@@ -224,3 +224,8 @@ export async function reorderRoutine(reIds: string[]): Promise<void> {
     for (let i = 0; i < reIds.length; i++) await db.runAsync('UPDATE routine_exercises SET order_index = ? WHERE id = ?', [i, reIds[i]]);
   });
 }
+
+export async function replaceRoutineExercise(reId: string, exerciseId: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('UPDATE routine_exercises SET exercise_id = ? WHERE id = ?', [exerciseId, reId]);
+}
