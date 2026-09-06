@@ -135,26 +135,24 @@ export default function Home() {
         <Pressable onPress={() => router.push('/routines')} hitSlop={12}><Label color={t.accent}>Edit</Label></Pressable>
       </View>
       {routines.length === 0 && <Label color={t.dim} style={{ paddingHorizontal: 4 }}>No routines. Tap Edit to build one.</Label>}
-      {routines.map((r, i) => {
-        const ago = daysAgo(r.last_done);
-        const next = r.id === nextId;
-        const planHead = r.plan && (i === 0 || routines[i - 1].plan !== r.plan);
-        return (
-          <View key={r.id} style={{ gap: 8 }}>
-          {planHead && <Label color={t.accent} style={{ paddingHorizontal: 4, paddingTop: 6 }}>{r.plan}</Label>}
-          <Pressable
-            onPress={() => go(r)}
-            style={({ pressed }) => [s.card, { backgroundColor: t.card, borderColor: next ? t.accent : t.line, opacity: pressed ? 0.85 : 1 }]}
-          >
-            <View style={{ gap: 4 }}>
-              <Doto size={28}>{r.name.toUpperCase()}</Doto>
-              <Label color={next ? t.accent : t.dim}>{next ? 'Up next · ' : ''}{ago === null ? 'never done' : ago === 0 ? 'today' : `${ago}d ago`}</Label>
-            </View>
-            <Label color={t.accent}>{active ? 'Resume' : 'Preview'}</Label>
-          </Pressable>
-          </View>
-        );
-      })}
+      {[...new Set(routines.map((r) => r.plan))].map((plan) => (
+        <View key={plan || '~'} style={[s.card, { backgroundColor: t.card, borderColor: t.line }]}>
+          {plan !== '' && <Doto size={28} style={{ paddingBottom: 6 }}>{plan.toUpperCase()}</Doto>}
+          {routines.filter((r) => r.plan === plan).map((r) => {
+            const ago = daysAgo(r.last_done);
+            const next = r.id === nextId;
+            return (
+              <Pressable key={r.id} onPress={() => go(r)} style={({ pressed }) => [s.day, { borderColor: next ? t.accent : t.line, opacity: pressed ? 0.8 : 1 }]}>
+                <View style={{ flex: 1, gap: 3 }}>
+                  <Doto size={plan ? 20 : 26}>{r.name.toUpperCase()}</Doto>
+                  <Label color={next ? t.accent : t.dim}>{next ? 'Up next · ' : ''}{ago === null ? 'never done' : ago === 0 ? 'today' : `${ago}d ago`}</Label>
+                </View>
+                <Label color={t.accent}>{active ? 'Resume' : 'Preview'}</Label>
+              </Pressable>
+            );
+          })}
+        </View>
+      ))}
 
       {recent.length > 0 && <Label style={s.section}>Recent</Label>}
       {recent.map((r) => {
@@ -177,7 +175,8 @@ const s = StyleSheet.create({
   page: { paddingHorizontal: 16, gap: 8 },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 4, paddingBottom: 12 },
   section: { paddingHorizontal: 4, paddingTop: 12, paddingBottom: 4 },
-  card: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 18, borderRadius: 16, borderWidth: 1, minHeight: 64 },
+  card: { padding: 14, borderRadius: 16, borderWidth: 1, gap: 8 },
+  day: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, borderWidth: 1, minHeight: 56 },
   panel: { padding: 16, borderRadius: 16, borderWidth: 1, gap: 12 },
   pageDots: { flexDirection: 'row', justifyContent: 'center', gap: 6, paddingTop: 10 },
   gridRow: { flexDirection: 'row', alignItems: 'center' },

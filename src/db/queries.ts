@@ -174,11 +174,24 @@ export async function allExercises(): Promise<Exercise[]> {
   return db.getAllAsync<Exercise>(`SELECT ${EX('e')} FROM exercises e ORDER BY e.primary_muscle, name`);
 }
 
-export async function createRoutine(name: string): Promise<string> {
+/** A "day" inside a plan (plan = what the UI calls a routine). */
+export async function createRoutine(name: string, plan = ''): Promise<string> {
   const db = await getDb();
   const id = Crypto.randomUUID();
-  await db.runAsync('INSERT INTO routines (id, name) VALUES (?, ?)', [id, name]);
+  const n = await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM routines WHERE plan = ?', [plan]);
+  await db.runAsync('INSERT INTO routines (id, name, plan, plan_order) VALUES (?, ?, ?, ?)', [id, name, plan, n?.n ?? 0]);
   return id;
+}
+
+export async function renamePlan(from: string, to: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('UPDATE routines SET plan = ? WHERE plan = ?', [to, from]);
+}
+
+export async function deletePlan(plan: string): Promise<void> {
+  const db = await getDb();
+  const ids = await db.getAllAsync<{ id: string }>('SELECT id FROM routines WHERE plan = ?', [plan]);
+  for (const { id } of ids) await deleteRoutine(id);
 }
 
 export async function renameRoutine(id: string, name: string, plan: string): Promise<void> {

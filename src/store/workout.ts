@@ -70,7 +70,7 @@ export const useWorkout = create<State>((set, get) => ({
     const exs = await routineExercises(routine.id);
     const blocks: ExerciseBlock[] = [];
     for (const ex of exs) blocks.push(await buildBlock(ex, ex.target_sets));
-    set({ sessionId: null, routine, title: routine.name, startedAt: 0, blocks, exIdx: 0, focus: { setIdx: 0, field: 'weight' }, rest: null });
+    set({ sessionId: null, routine, title: routine.plan ? `${routine.plan} · ${routine.name}` : routine.name, startedAt: 0, blocks, exIdx: 0, focus: { setIdx: 0, field: 'weight' }, rest: null });
   },
 
   async begin() {

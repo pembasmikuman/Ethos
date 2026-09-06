@@ -78,8 +78,8 @@ export async function seedRoutines(db: SQLiteDatabase): Promise<void> {
   const row = await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM routines');
   if ((row?.n ?? 0) > 0) return;
   await db.withTransactionAsync(async () => {
-    for (const [id, name, exs] of ROUTINES) {
-      await db.runAsync('INSERT INTO routines (id, name) VALUES (?, ?)', [id, name]);
+    for (const [i, [id, name, exs]] of ROUTINES.entries()) {
+      await db.runAsync("INSERT INTO routines (id, name, plan, plan_order) VALUES (?, ?, 'PPL', ?)", [id, name, i]);
       for (let i = 0; i < exs.length; i++) {
         await db.runAsync(
           'INSERT INTO routine_exercises (id, routine_id, exercise_id, order_index, target_sets) VALUES (?, ?, ?, ?, 3)',

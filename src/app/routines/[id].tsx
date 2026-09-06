@@ -57,11 +57,11 @@ export default function RoutineEditor() {
   return (
     <ScrollView style={{ backgroundColor: t.bg }} scrollEnabled={!dragging} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page, { paddingTop: top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
       <View style={s.head}>
-        <Pressable onPress={() => router.back()} hitSlop={12}><Label color={t.accent}>‹ Routines</Label></Pressable>
+        <Pressable onPress={() => router.back()} hitSlop={12}><Label color={t.accent}>‹ {plan || 'Routines'}</Label></Pressable>
         <Label>{rows.length} exercises</Label>
       </View>
 
-      <Label style={s.section}>Name</Label>
+      <Label style={s.section}>Day name</Label>
       <TextInput
         value={name}
         onChangeText={setName}
@@ -69,18 +69,6 @@ export default function RoutineEditor() {
         selectTextOnFocus
         returnKeyType="done"
         style={[s.name, { color: t.text, borderBottomColor: t.line }]}
-      />
-
-      <Label style={s.section}>Plan · optional</Label>
-      <TextInput
-        value={plan}
-        onChangeText={setPlan}
-        onEndEditing={() => renameRoutine(id, name.trim() || 'Untitled', plan.trim())}
-        placeholder="e.g. UL, PPL"
-        placeholderTextColor={t.dim}
-        autoCapitalize="characters"
-        returnKeyType="done"
-        style={[s.plan, { color: t.text, borderBottomColor: t.line }]}
       />
 
       <Label style={s.section}>Exercises</Label>
@@ -114,7 +102,6 @@ const s = StyleSheet.create({
   page: { paddingHorizontal: 16 },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 4, paddingBottom: 12 },
   section: { paddingHorizontal: 4, paddingTop: 18, paddingBottom: 8 },
-  plan: { fontFamily: fonts.mono, fontSize: 16, paddingVertical: 8, paddingHorizontal: 4, borderBottomWidth: 1 },
   name: { fontFamily: fonts.doto, fontSize: 32, paddingVertical: 8, paddingHorizontal: 4, borderBottomWidth: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 4, borderBottomWidth: 1, height: ROW_H },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 6 },
