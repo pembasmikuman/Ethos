@@ -73,8 +73,9 @@ export default function Home() {
           showsHorizontalScrollIndicator={false}
           onMomentumScrollEnd={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / (panelW + 32)))}
           style={{ marginHorizontal: -16 }}
+          contentContainerStyle={{ alignItems: 'stretch' }}
         >
-          <View style={{ width: panelW + 32, paddingHorizontal: 16 }}><View style={[s.panel, { backgroundColor: t.card, borderColor: t.line }]}>
+          <View style={{ width: panelW + 32, paddingHorizontal: 16 }}><View style={[s.panel, { flex: 1, backgroundColor: t.card, borderColor: t.line }]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <Label>This week · hard sets</Label>
               <Pressable onPress={() => setEditing((v) => !v)} hitSlop={12}><Label color={editing ? t.accent : t.green}>{editing ? 'Done' : '10–20 band'}</Label></Pressable>
@@ -94,7 +95,7 @@ export default function Home() {
             )}
           </View></View>
 
-          <View style={{ width: panelW + 32, paddingHorizontal: 16 }}><View style={[s.panel, { backgroundColor: t.card, borderColor: t.line }]}>
+          <View style={{ width: panelW + 32, paddingHorizontal: 16 }}><View style={[s.panel, { flex: 1, backgroundColor: t.card, borderColor: t.line }]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <Label>Training days · 6 weeks</Label>
               <Label color={t.green}>{grid[grid.length - 1]?.filter(Boolean).length ?? 0} this week</Label>
