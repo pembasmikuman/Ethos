@@ -63,8 +63,22 @@ export default function Home() {
       <View style={[s.panel, { backgroundColor: t.card, borderColor: t.line }]}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           <Label>This week · hard sets</Label>
-          <Label color={t.green}>10–20 band</Label>
+          <Pressable onPress={() => setEditing((v) => !v)} hitSlop={12}><Label color={editing ? t.accent : t.green}>{editing ? 'Done' : '10–20 band'}</Label></Pressable>
         </View>
+        <DotBars items={MUSCLES.filter(([, key]) => shown.includes(key)).map(([label, key]) => ({ label, value: volume[key] ?? 0 }))} />
+        {editing && (
+          <View style={s.chips}>
+            {MUSCLES.map(([label, key]) => {
+              const on = shown.includes(key);
+              return (
+                <Pressable key={key} onPress={() => toggle(key)} style={[s.chip, { borderColor: on ? t.accent : t.line, backgroundColor: on ? t.accent : 'transparent' }]}>
+                  <Label color={on ? t.bg : t.mute}>{label}</Label>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+      </View>
 
       <View style={[s.section, { flexDirection: 'row', justifyContent: 'space-between' }]}>
         <Label>Routines</Label>
@@ -88,9 +102,6 @@ export default function Home() {
           </Pressable>
         );
       })}
-
-        <DotBars items={MUSCLES.map(([label, key]) => ({ label, value: volume[key] ?? 0 }))} />
-      </View>
 
       {recent.length > 0 && <Label style={s.section}>Recent</Label>}
       {recent.map((r) => {
