@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { allSessions, type SessionRow } from '../../db/queries';
+import { allSessions, deleteSession, type SessionRow } from '../../db/queries';
 import { useTheme } from '../../lib/theme';
 import { Doto, Label } from '../../components/Text';
 import { DOCK_HEIGHT } from '../../components/Dock';
@@ -18,7 +18,14 @@ export default function History() {
   const insets = useSafeAreaInsets();
   const [rows, setRows] = useState<SessionRow[]>([]);
 
-  useFocusEffect(useCallback(() => { allSessions().then(setRows); }, []));
+  const load = () => allSessions().then(setRows);
+  useFocusEffect(useCallback(() => { load(); }, []));
+
+  const confirmDelete = (r: SessionRow) =>
+    Alert.alert('Delete session?', `${r.title} · ${sessionMeta(r).date}. Removes its ${r.sets} sets.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => { await deleteSession(r.id); load(); } },
+    ]);
 
   return (
     <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
@@ -26,11 +33,11 @@ export default function History() {
         <Doto size={40}>HISTORY</Doto>
         <Label>{rows.length} sessions</Label>
       </View>
-      {rows.length === 0 && <Label style={{ padding: 4 }}>No finished sessions yet.</Label>}
+      {rows.length === 0 ? <Label style={{ padding: 4 }}>No finished sessions yet.</Label> : <Label color={t.dim} style={{ paddingHorizontal: 4, paddingBottom: 6 }}>Hold to delete</Label>}
       {rows.map((r) => {
         const { date, mins } = sessionMeta(r);
         return (
-          <Pressable key={r.id} onPress={() => router.push(`/history/${r.id}`)} style={({ pressed }) => [s.row, { borderBottomColor: t.line, opacity: pressed ? 0.7 : 1 }]}>
+          <Pressable key={r.id} onPress={() => router.push(`/history/${r.id}`)} onLongPress={() => confirmDelete(r)} style={({ pressed }) => [s.row, { borderBottomColor: t.line, opacity: pressed ? 0.7 : 1 }]}>
             <View style={{ flex: 1, gap: 4 }}>
               <Doto size={22}>{r.title.toUpperCase()}</Doto>
               <Label color={t.dim}>{date}</Label>

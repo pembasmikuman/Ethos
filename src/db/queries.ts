@@ -150,3 +150,13 @@ export async function sessionSets(sessionId: string) {
     [sessionId],
   );
 }
+
+export async function updateSet(id: string, weight: number, reps: number, rir: number | null): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('UPDATE logged_sets SET weight = ?, reps = ?, rir = ? WHERE id = ?', [weight, reps, rir, id]);
+}
+
+export async function deleteSet(id: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('DELETE FROM logged_sets WHERE id = ?', [id]);
+}
