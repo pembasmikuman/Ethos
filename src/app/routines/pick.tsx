@@ -7,9 +7,12 @@ import type { Exercise } from '../../db';
 import { fonts, useTheme } from '../../lib/theme';
 import { Doto, Label } from '../../components/Text';
 import { DOCK_HEIGHT } from '../../components/Dock';
+import { useWorkout } from '../../store/workout';
 
 export default function PickExercise() {
-  const { routine, replace } = useLocalSearchParams<{ routine: string; replace?: string }>();
+  const { routine, replace, session } = useLocalSearchParams<{ routine?: string; replace?: string; session?: 'add' | 'swap' }>();
+  const addToSession = useWorkout((s) => s.addExercise);
+  const inSession = useWorkout((s) => s.blocks.map((b) => b.exercise.id));
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const [all, setAll] = useState<Exercise[]>([]);
@@ -18,12 +21,14 @@ export default function PickExercise() {
 
   useEffect(() => {
     allExercises().then(setAll);
-    routineExerciseRows(routine).then((rows) => setHave(new Set(rows.map((r) => r.id))));
+    if (routine) routineExerciseRows(routine).then((rows) => setHave(new Set(rows.map((r) => r.id))));
+    else setHave(new Set(inSession));
   }, [routine]);
 
   const pick = async (e: Exercise) => {
-    if (replace) await replaceRoutineExercise(replace, e.id);
-    else await addRoutineExercise(routine, e.id);
+    if (session) await addToSession(e, session === 'swap');
+    else if (replace) await replaceRoutineExercise(replace, e.id);
+    else if (routine) await addRoutineExercise(routine, e.id);
     router.back();
   };
 
@@ -34,7 +39,7 @@ export default function PickExercise() {
   return (
     <ScrollView style={{ backgroundColor: t.bg }} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
       <View style={s.head}>
-        <Doto size={32}>{replace ? 'REPLACE WITH' : 'ADD EXERCISE'}</Doto>
+        <Doto size={32}>{replace || session === 'swap' ? 'SWAP WITH' : 'ADD EXERCISE'}</Doto>
         <Pressable onPress={() => router.back()} hitSlop={12}><Label color={t.accent}>Cancel</Label></Pressable>
       </View>
       <TextInput value={q} onChangeText={setQ} placeholder="search" placeholderTextColor={t.dim} autoCorrect={false} style={[s.search, { color: t.text, borderColor: t.line, backgroundColor: t.card }]} />
@@ -51,9 +56,9 @@ export default function PickExercise() {
           </View>
         );
       })}
-      <Pressable onPress={() => router.push(`/exercise/new?routine=${routine}`)} style={({ pressed }) => [s.add, { borderColor: t.line, opacity: pressed ? 0.7 : 1 }]}>
+      {routine && <Pressable onPress={() => router.push(`/exercise/new?routine=${routine}`)} style={({ pressed }) => [s.add, { borderColor: t.line, opacity: pressed ? 0.7 : 1 }]}>
         <Label color={t.accent}>+ New exercise</Label>
-      </Pressable>
+      </Pressable>}
     </ScrollView>
   );
 }

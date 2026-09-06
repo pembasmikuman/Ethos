@@ -19,6 +19,8 @@ type State = {
   rest: { endsAt: number; total: number; notifId: string | null } | null;
 
   start: (routine: Routine) => Promise<void>;
+  /** Insert exercise after current, or swap current (drops its unlogged sets). */
+  addExercise: (ex: Exercise, swap?: boolean) => Promise<void>;
   setExercise: (i: number) => void;
   setFocus: (setIdx: number, field: Field) => void;
   input: (value: string) => void;
@@ -30,6 +32,20 @@ type State = {
   finish: () => Promise<void>;
   cancel: () => Promise<void>;
 };
+
+async function buildBlock(ex: Exercise, targetSets: number): Promise<ExerciseBlock> {
+  const history = await recentExerciseSessions(ex.id, 3);
+  const prev = history[0] ?? [];
+  const next = nextWeight(prev, ex);
+  const weight = next ? fmtKg(next.weight) : '';
+  return {
+    exercise: ex,
+    prev,
+    overload: next?.overload ?? false,
+    stalled: stalled(history, ex),
+    sets: Array.from({ length: targetSets }, () => emptySet(weight)),
+  };
+}
 
 const emptySet = (weight: string, type: 'warmup' | 'working' = 'working'): SetDraft => ({ type, weight, reps: '', rir: '', done: false });
 
@@ -45,21 +61,21 @@ export const useWorkout = create<State>((set, get) => ({
   async start(routine) {
     const exs = await routineExercises(routine.id);
     const blocks: ExerciseBlock[] = [];
-    for (const ex of exs) {
-      const history = await recentExerciseSessions(ex.id, 3);
-      const prev = history[0] ?? [];
-      const next = nextWeight(prev, ex);
-      const weight = next ? fmtKg(next.weight) : '';
-      blocks.push({
-        exercise: ex,
-        prev,
-        overload: next?.overload ?? false,
-        stalled: stalled(history, ex),
-        sets: Array.from({ length: ex.target_sets }, () => emptySet(weight)),
-      });
-    }
+    for (const ex of exs) blocks.push(await buildBlock(ex, ex.target_sets));
     const sessionId = await startSession(routine);
     set({ sessionId, title: routine.name, startedAt: Date.now(), blocks, exIdx: 0, focus: { setIdx: 0, field: 'weight' }, rest: null });
+  },
+
+  async addExercise(ex, swap = false) {
+    const { blocks, exIdx } = get();
+    const cur = blocks[exIdx];
+    const block = await buildBlock(ex, swap && cur ? Math.max(1, cur.sets.filter((x) => x.type === 'working').length) : 3);
+    // Swap with logged sets keeps the old block so its sets stay visible.
+    const replace = swap && cur && !cur.sets.some((x) => x.done);
+    const idx = replace ? exIdx : exIdx + 1;
+    const next = [...blocks];
+    next.splice(idx, replace ? 1 : 0, block);
+    set({ blocks: next, exIdx: idx, focus: { setIdx: 0, field: 'weight' } });
   },
 
   setExercise(i) {

@@ -55,6 +55,13 @@ export default function Workout() {
       { text: 'Finish', onPress: async () => { await w.finish(); router.replace('/'); } },
     ]);
 
+  const onExerciseMenu = () =>
+    Alert.alert(block.exercise.name, undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Add exercise after', onPress: () => router.push('/routines/pick?session=add') },
+      { text: 'Swap this exercise', onPress: () => router.push('/routines/pick?session=swap') },
+    ]);
+
   const restLeft = w.rest ? Math.round((w.rest.endsAt - now) / 1000) : 0;
   let working = 0;
 
@@ -63,7 +70,9 @@ export default function Workout() {
       <View style={s.head}>
         <View style={{ gap: 4, flex: 1 }}>
           <Label>{w.title} · {w.exIdx + 1} / {w.blocks.length}</Label>
-          <Doto size={30} numberOfLines={1}>{block.exercise.name.toUpperCase()}</Doto>
+          <Pressable onPress={onExerciseMenu} hitSlop={8}>
+            <Doto size={30} numberOfLines={1}>{block.exercise.name.toUpperCase()}</Doto>
+          </Pressable>
         </View>
         <Pressable onPress={onFinish} hitSlop={10} style={{ alignItems: 'flex-end', gap: 4 }}>
           <Label>Elapsed</Label>
