@@ -4,7 +4,7 @@ import { BlurView } from 'expo-blur';
 import { router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { FadeIn, FadeOut, LinearTransition, runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, LinearTransition, interpolateColor, runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { useScheme, useTheme } from '../lib/theme';
 import { fmtClock } from '../lib/format';
@@ -117,26 +117,28 @@ export function Dock() {
     opacity: withSpring(hidden ? 0 : 1, SNAP),
   }));
 
+  const glass = scheme === 'light' ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.10)';
+  const logIdx = ITEMS.findIndex((i) => i.key === 'log');
   const highlight = useAnimatedStyle(() => ({
     transform: [{ translateX: x.value }, { scale: withSpring(dragging.value ? 1.08 : 1, SNAP) }],
     opacity: withSpring(dragging.value ? 0.9 : 1, SNAP),
+    backgroundColor: logIdx < 0 ? glass : interpolateColor(x.value, [(logIdx - 1) * ITEM_W, logIdx * ITEM_W, (logIdx + 1) * ITEM_W], [glass, t.accent, glass]),
   }));
 
   const restLeft = rest ? Math.round((rest.endsAt - now) / 1000) : 0;
   const status = !active ? null : restLeft > 0 ? fmtClock(restLeft) : fmtClock((now - startedAt) / 1000);
-  const glass = scheme === 'light' ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.10)';
 
   return (
     <Animated.View pointerEvents={hidden ? 'none' : 'box-none'} style={[s.wrap, { bottom: insets.bottom + 10 }, wrapStyle]}>
       <GestureDetector gesture={pan}>
         <AnimatedBlur layout={LinearTransition.springify().damping(26).stiffness(320)} intensity={40} tint={scheme === 'light' ? 'light' : 'dark'} style={[s.pill, { borderColor: t.line }]}>
-          <Animated.View style={[s.highlight, { backgroundColor: glass, borderColor: t.line }, highlight]} />
+          <Animated.View style={[s.highlight, { borderColor: t.line }, highlight]} />
           {ITEMS.map((it, i) => {
             const on = i === selected;
             const live = it.key === 'log';
-            const ink = live ? t.bg : on ? t.accent : t.text;
+            const ink = live ? (on ? t.bg : t.accent) : on ? t.accent : t.text;
             return (
-              <AnimatedPressable key={it.key} entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)} layout={LinearTransition.springify().damping(26).stiffness(320)} disabled={on} onPress={() => go(i)} style={[s.item, live && { backgroundColor: t.accent, borderRadius: 24, height: 48, marginVertical: 4 }]}>
+              <AnimatedPressable key={it.key} entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)} layout={LinearTransition.springify().damping(26).stiffness(320)} disabled={on} onPress={() => go(i)} style={s.item}>
                 <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
                   <Path d={ICONS[it.key]} stroke={ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
                 </Svg>
