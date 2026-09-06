@@ -15,12 +15,14 @@ import { Doto, Label } from './Text';
 const ICONS: Record<string, string> = {
   home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
   log: 'M2 10h2v4H2zM20 10h2v4h-2zM5 8h2v8H5zM17 8h2v8h-2zM7 12h10',
+  history: 'M12 8v4l3 2M21 12a9 9 0 1 1-3-6.7M21 4v4h-4',
   settings: 'M4 6h16M4 12h16M4 18h16M9 4v4M15 10v4M7 16v4',
 };
 
 const ALL_ITEMS: { key: string; label: string; href: string }[] = [
   { key: 'home', label: 'Home', href: '/' },
   { key: 'log', label: 'Log', href: '/workout' },
+  { key: 'history', label: 'History', href: '/history' },
   { key: 'settings', label: 'Settings', href: '/settings' },
 ];
 
@@ -56,7 +58,7 @@ export function Dock() {
   const [now, setNow] = useState(Date.now());
 
   const ITEMS = active ? ALL_ITEMS : ALL_ITEMS.filter((i) => i.key !== 'log');
-  const selected = Math.max(0, ITEMS.findIndex((i) => i.href === path || (i.href === '/workout' && path === '/rest')));
+  const selected = Math.max(0, ITEMS.findIndex((i) => i.href === path || (i.href === '/workout' && path === '/rest') || (i.href === '/history' && path.startsWith('/history'))));
   const x = useSharedValue(selected * ITEM_W);
   const startX = useSharedValue(0);
   const dragging = useSharedValue(false);

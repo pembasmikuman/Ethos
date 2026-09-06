@@ -117,3 +117,36 @@ export async function deleteSession(sessionId: string): Promise<void> {
   await db.runAsync('DELETE FROM logged_sets WHERE session_id = ?', [sessionId]);
   await db.runAsync('DELETE FROM workout_sessions WHERE id = ?', [sessionId]);
 }
+
+export type SessionRow = { id: string; title: string; start_time: string; end_time: string | null; sets: number; volume_kg: number };
+
+export async function allSessions(): Promise<SessionRow[]> {
+  const db = await getDb();
+  return db.getAllAsync<SessionRow>(
+    `SELECT s.id, s.title, s.start_time, s.end_time,
+       (SELECT COUNT(*) FROM logged_sets l WHERE l.session_id = s.id AND l.set_type = 'working') AS sets,
+       (SELECT COALESCE(SUM(weight * reps), 0) FROM logged_sets l WHERE l.session_id = s.id AND l.set_type = 'working') AS volume_kg
+     FROM workout_sessions s WHERE s.end_time IS NOT NULL ORDER BY s.start_time DESC`,
+  );
+}
+
+export async function sessionById(id: string): Promise<SessionRow | null> {
+  const db = await getDb();
+  return db.getFirstAsync<SessionRow>(
+    `SELECT s.id, s.title, s.start_time, s.end_time,
+       (SELECT COUNT(*) FROM logged_sets l WHERE l.session_id = s.id AND l.set_type = 'working') AS sets,
+       (SELECT COALESCE(SUM(weight * reps), 0) FROM logged_sets l WHERE l.session_id = s.id AND l.set_type = 'working') AS volume_kg
+     FROM workout_sessions s WHERE s.id = ?`,
+    [id],
+  );
+}
+
+/** Sets of a session with exercise names, in logged order. */
+export async function sessionSets(sessionId: string) {
+  const db = await getDb();
+  return db.getAllAsync<LoggedSet & { name: string; target_rep_max: number }>(
+    `SELECT l.*, e.name, e.target_rep_max FROM logged_sets l JOIN exercises e ON e.id = l.exercise_id
+     WHERE l.session_id = ? ORDER BY l.completed_at`,
+    [sessionId],
+  );
+}
