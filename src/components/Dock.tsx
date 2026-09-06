@@ -133,14 +133,15 @@ export function Dock() {
           <Animated.View style={[s.highlight, { backgroundColor: glass, borderColor: t.line }, highlight]} />
           {ITEMS.map((it, i) => {
             const on = i === selected;
-            const ink = on ? t.accent : t.text;
+            const live = it.key === 'log';
+            const ink = live ? t.bg : on ? t.accent : t.text;
             return (
-              <AnimatedPressable key={it.key} entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)} layout={LinearTransition.springify().damping(26).stiffness(320)} disabled={on} onPress={() => go(i)} style={s.item}>
+              <AnimatedPressable key={it.key} entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)} layout={LinearTransition.springify().damping(26).stiffness(320)} disabled={on} onPress={() => go(i)} style={[s.item, live && { backgroundColor: t.accent, borderRadius: 24, height: 48, marginVertical: 4 }]}>
                 <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
                   <Path d={ICONS[it.key]} stroke={ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
                 </Svg>
                 {it.key === 'log' && status ? (
-                  <Doto size={12} color={restLeft > 0 ? t.accent : ink}>{status}</Doto>
+                  <Doto size={12} color={ink}>{status}</Doto>
                 ) : (
                   <Label size={9} color={ink}>{it.label}</Label>
                 )}
