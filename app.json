@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "ethos",
+    "name": "Ethos",
     "slug": "ethos",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -26,7 +26,16 @@
       "expo-router",
       "expo-sqlite",
       "expo-sharing",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#0A0A0B"
+        }
+      ]
     ]
   }
 }
