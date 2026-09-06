@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Exercise } from '../db';
-import { finishSession, insertSet, recentExerciseSessions, routineExercises, startSession, type LoggedSet, type Routine } from '../db/queries';
+import { deleteSession, finishSession, insertSet, recentExerciseSessions, routineExercises, startSession, type LoggedSet, type Routine } from '../db/queries';
 import { nextWeight, stalled, warmupRamp } from '../lib/progression';
 import { cancelRestDone, scheduleRestDone } from '../lib/rest';
 import { fmtKg } from '../lib/format';
@@ -28,6 +28,7 @@ type State = {
   adjustRest: (deltaSeconds: number) => Promise<void>;
   skipRest: () => Promise<void>;
   finish: () => Promise<void>;
+  cancel: () => Promise<void>;
 };
 
 const emptySet = (weight: string, type: 'warmup' | 'working' = 'working'): SetDraft => ({ type, weight, reps: '', rir: '', done: false });
@@ -146,6 +147,13 @@ export const useWorkout = create<State>((set, get) => ({
     const { rest } = get();
     await cancelRestDone(rest?.notifId ?? null);
     set({ rest: null });
+  },
+
+  async cancel() {
+    const { sessionId, rest } = get();
+    await cancelRestDone(rest?.notifId ?? null);
+    if (sessionId) await deleteSession(sessionId);
+    set({ sessionId: null, blocks: [], rest: null });
   },
 
   async finish() {

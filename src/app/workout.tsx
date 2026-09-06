@@ -48,9 +48,10 @@ export default function Workout() {
   };
   const doneLabel = nextField() ? `Next · ${nextField()}` : 'Done · Start rest';
   const onFinish = () =>
-    Alert.alert('Finish workout?', undefined, [
+    Alert.alert('End workout?', 'Finish saves it. Cancel deletes every set logged this session.', [
       { text: 'Keep going', style: 'cancel' },
-      { text: 'Finish', style: 'destructive', onPress: async () => { await w.finish(); router.replace('/'); } },
+      { text: 'Cancel session', style: 'destructive', onPress: async () => { await w.cancel(); router.replace('/'); } },
+      { text: 'Finish', onPress: async () => { await w.finish(); router.replace('/'); } },
     ]);
 
   const restLeft = w.rest ? Math.round((w.rest.endsAt - now) / 1000) : 0;
@@ -60,7 +61,10 @@ export default function Workout() {
     <View style={[s.page, { backgroundColor: t.bg, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 8 }]}>
       <View style={s.head}>
         <View style={{ gap: 4, flex: 1 }}>
-          <Label>{w.title} · {w.exIdx + 1} / {w.blocks.length}</Label>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <Pressable onPress={() => router.back()} hitSlop={10}><Label color={t.text}>‹ Home</Label></Pressable>
+            <Label>{w.title} · {w.exIdx + 1} / {w.blocks.length}</Label>
+          </View>
           <Doto size={30} numberOfLines={1}>{block.exercise.name.toUpperCase()}</Doto>
         </View>
         <Pressable onPress={onFinish} hitSlop={10} style={{ alignItems: 'flex-end', gap: 4 }}>

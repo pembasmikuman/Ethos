@@ -110,3 +110,10 @@ export async function setsSince(sinceIso: string) {
     [sinceIso],
   );
 }
+
+/** Delete a session and its sets. */
+export async function deleteSession(sessionId: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('DELETE FROM logged_sets WHERE session_id = ?', [sessionId]);
+  await db.runAsync('DELETE FROM workout_sessions WHERE id = ?', [sessionId]);
+}

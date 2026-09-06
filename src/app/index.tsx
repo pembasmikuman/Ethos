@@ -17,6 +17,8 @@ export default function Home() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const start = useWorkout((s) => s.start);
+  const active = useWorkout((s) => s.sessionId !== null);
+  const activeTitle = useWorkout((s) => s.title);
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [recent, setRecent] = useState<Recent[]>([]);
   const [busy, setBusy] = useState(false);
@@ -32,6 +34,10 @@ export default function Home() {
 
   const go = async (r: Routine) => {
     if (busy) return;
+    if (active) {
+      router.push('/workout');
+      return;
+    }
     setBusy(true);
     try {
       await start(r);
@@ -49,6 +55,16 @@ export default function Home() {
         <Doto size={40}>ETHOS</Doto>
         <Label>{today}</Label>
       </View>
+
+      {active && (
+        <Pressable onPress={() => router.push('/workout')} style={[s.card, { backgroundColor: t.warnBg, borderColor: t.warnLine }]}>
+          <View style={{ gap: 4 }}>
+            <Label color={t.accent}>In progress</Label>
+            <Doto size={28}>{activeTitle.toUpperCase()}</Doto>
+          </View>
+          <Label color={t.accent}>Resume</Label>
+        </Pressable>
+      )}
 
       <Label style={s.section}>Routines</Label>
       {routines.map((r) => (
