@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme, View } from 'react-native';
 import { useTheme } from '../lib/theme';
+import { Dock } from '../components/Dock';
 
 export default function Layout() {
   const t = useTheme();
@@ -17,9 +18,12 @@ export default function Layout() {
   return (
     <>
       <StatusBar style={scheme === 'light' ? 'dark' : 'light'} />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.bg } }}>
-        <Stack.Screen name="rest" options={{ presentation: 'modal' }} />
-      </Stack>
+      <View style={{ flex: 1 }}>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.bg } }}>
+          <Stack.Screen name="rest" options={{ presentation: 'modal' }} />
+        </Stack>
+        <Dock />
+      </View>
     </>
   );
 }

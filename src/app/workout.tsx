@@ -9,6 +9,7 @@ import { useWorkout } from '../store/workout';
 import { Doto, Label } from '../components/Text';
 import { Numpad } from '../components/Numpad';
 import { SetRow } from '../components/SetRow';
+import { DOCK_HEIGHT } from '../components/Dock';
 
 export default function Workout() {
   const t = useTheme();
@@ -58,13 +59,10 @@ export default function Workout() {
   let working = 0;
 
   return (
-    <View style={[s.page, { backgroundColor: t.bg, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 8 }]}>
+    <View style={[s.page, { backgroundColor: t.bg, paddingTop: insets.top + 8, paddingBottom: insets.bottom + DOCK_HEIGHT }]}>
       <View style={s.head}>
         <View style={{ gap: 4, flex: 1 }}>
-          <View style={{ flexDirection: 'row', gap: 12 }}>
-            <Pressable onPress={() => router.back()} hitSlop={10}><Label color={t.text}>‹ Home</Label></Pressable>
-            <Label>{w.title} · {w.exIdx + 1} / {w.blocks.length}</Label>
-          </View>
+          <Label>{w.title} · {w.exIdx + 1} / {w.blocks.length}</Label>
           <Doto size={30} numberOfLines={1}>{block.exercise.name.toUpperCase()}</Doto>
         </View>
         <Pressable onPress={onFinish} hitSlop={10} style={{ alignItems: 'flex-end', gap: 4 }}>
