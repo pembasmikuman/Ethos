@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../lib/theme';
@@ -11,6 +11,7 @@ import { Numpad } from '../components/Numpad';
 import { SetRow } from '../components/SetRow';
 import { DOCK_HEIGHT } from '../components/Dock';
 import type { ExerciseBlock } from '../store/workout';
+import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 function ExercisePage({ block, active, restLeft }: { block: ExerciseBlock; active: boolean; restLeft: number }) {
   const t = useTheme();
@@ -43,8 +44,17 @@ function ExercisePage({ block, active, restLeft }: { block: ExerciseBlock; activ
           if (set.type === 'working') working += 1;
           const n = working;
           return (
-            <SetRow
+            <Swipeable
               key={set.id}
+              friction={2}
+              rightThreshold={64}
+              overshootRight={false}
+              onSwipeableOpen={() => { tapHaptic(); w.removeSet(i); }}
+              renderRightActions={() => (
+                <View style={{ width: 96, alignItems: 'center', justifyContent: 'center' }}><Label color={t.accent}>Remove</Label></View>
+              )}
+            >
+            <SetRow
               index={i}
               workingNumber={n}
               set={set}
@@ -53,13 +63,8 @@ function ExercisePage({ block, active, restLeft }: { block: ExerciseBlock; activ
               active={active && i === w.focus.setIdx}
               focusField={active && i === w.focus.setIdx ? w.focus.field : null}
               onFocus={(f) => w.setFocus(i, f)}
-              onLongPress={() =>
-                Alert.alert('Remove set?', undefined, [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Remove', style: 'destructive', onPress: () => w.removeSet(i) },
-                ])
-              }
             />
+            </Swipeable>
           );
         })}
         <View style={s.actions}>
@@ -77,16 +82,16 @@ export default function Workout() {
   const w = useWorkout();
   const block = w.blocks[w.exIdx];
   const [now, setNow] = useState(Date.now());
-  const pageW = useWindowDimensions().width - 32;
+  const [pageH, setPageH] = useState(0);
   const pager = useRef<ScrollView>(null);
   const shown = useRef(w.exIdx);
 
   // Follow exIdx changes made elsewhere (overview, prev/next).
   useEffect(() => {
-    if (shown.current === w.exIdx) return;
+    if (shown.current === w.exIdx || !pageH) return;
     shown.current = w.exIdx;
-    pager.current?.scrollTo({ x: w.exIdx * pageW, animated: true });
-  }, [w.exIdx, pageW]);
+    pager.current?.scrollTo({ y: w.exIdx * pageH, animated: true });
+  }, [w.exIdx, pageH]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -151,18 +156,21 @@ export default function Workout() {
 
       <ScrollView
         ref={pager}
-        horizontal
         pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        contentOffset={{ x: w.exIdx * pageW, y: 0 }}
+        showsVerticalScrollIndicator={false}
+        onLayout={(e) => {
+          const h = e.nativeEvent.layout.height;
+          setPageH(h);
+          pager.current?.scrollTo({ y: w.exIdx * h, animated: false });
+        }}
         onMomentumScrollEnd={(e) => {
-          const i = Math.round(e.nativeEvent.contentOffset.x / pageW);
+          const i = Math.round(e.nativeEvent.contentOffset.y / pageH);
           if (i !== shown.current) { shown.current = i; tapHaptic(); w.setExercise(i); }
         }}
-        style={{ flex: 1, marginHorizontal: -16 }}
+        style={{ flex: 1 }}
       >
         {w.blocks.map((b, bi) => (
-          <View key={b.exercise.id + bi} style={{ width: pageW, marginHorizontal: 16 }}>
+          <View key={b.exercise.id + bi} style={{ height: pageH || undefined }}>
             <ExercisePage block={b} active={bi === w.exIdx} restLeft={restLeft} />
           </View>
         ))}
