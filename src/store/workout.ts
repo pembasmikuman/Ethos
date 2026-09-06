@@ -11,6 +11,7 @@ export type ExerciseBlock = { exercise: Exercise; sets: SetDraft[]; prev: Logged
 
 type State = {
   sessionId: string | null;
+  routine: Routine | null;
   title: string;
   startedAt: number;
   blocks: ExerciseBlock[];
@@ -18,7 +19,10 @@ type State = {
   focus: { setIdx: number; field: Field };
   rest: { endsAt: number; total: number; notifId: string | null } | null;
 
-  start: (routine: Routine) => Promise<void>;
+  /** Load routine into a preview. No DB session, no clock. */
+  preview: (routine: Routine) => Promise<void>;
+  /** Start the DB session and clock for the previewed routine. */
+  begin: () => Promise<void>;
   /** Insert exercise after current, or swap current (drops its unlogged sets). */
   addExercise: (ex: Exercise, swap?: boolean) => Promise<void>;
   removeExercise: (i: number) => void;
@@ -54,6 +58,7 @@ const emptySet = (weight: string, type: 'warmup' | 'working' = 'working'): SetDr
 
 export const useWorkout = create<State>((set, get) => ({
   sessionId: null,
+  routine: null,
   title: '',
   startedAt: 0,
   blocks: [],
@@ -61,12 +66,17 @@ export const useWorkout = create<State>((set, get) => ({
   focus: { setIdx: 0, field: 'weight' },
   rest: null,
 
-  async start(routine) {
+  async preview(routine) {
     const exs = await routineExercises(routine.id);
     const blocks: ExerciseBlock[] = [];
     for (const ex of exs) blocks.push(await buildBlock(ex, ex.target_sets));
-    const sessionId = await startSession(routine);
-    set({ sessionId, title: routine.name, startedAt: Date.now(), blocks, exIdx: 0, focus: { setIdx: 0, field: 'weight' }, rest: null });
+    set({ sessionId: null, routine, title: routine.name, startedAt: 0, blocks, exIdx: 0, focus: { setIdx: 0, field: 'weight' }, rest: null });
+  },
+
+  async begin() {
+    const { routine, sessionId } = get();
+    if (!routine || sessionId) return;
+    set({ sessionId: await startSession(routine), startedAt: Date.now() });
   },
 
   async addExercise(ex, swap = false) {
@@ -185,13 +195,13 @@ export const useWorkout = create<State>((set, get) => ({
     const { sessionId, rest } = get();
     await cancelRestDone(rest?.notifId ?? null);
     if (sessionId) await deleteSession(sessionId);
-    set({ sessionId: null, blocks: [], rest: null });
+    set({ sessionId: null, routine: null, blocks: [], rest: null });
   },
 
   async finish() {
     const { sessionId, rest } = get();
     await cancelRestDone(rest?.notifId ?? null);
     if (sessionId) await finishSession(sessionId);
-    set({ sessionId: null, blocks: [], rest: null });
+    set({ sessionId: null, routine: null, blocks: [], rest: null });
   },
 }));

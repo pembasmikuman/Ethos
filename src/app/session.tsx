@@ -19,9 +19,10 @@ export default function Session() {
   const drag = useDragList();
   const [now] = useState(Date.now());
 
-  if (!w.sessionId) return <View style={{ flex: 1, backgroundColor: t.bg }} />;
+  if (w.blocks.length === 0) return <View style={{ flex: 1, backgroundColor: t.bg }} />;
 
-  const open = (i: number) => { w.setExercise(i); router.push('/workout'); };
+  const started = w.sessionId !== null;
+  const open = async (i: number) => { if (!started) await w.begin(); w.setExercise(i); router.push('/workout'); };
   const menu = (i: number) => {
     const b = w.blocks[i];
     Alert.alert(b.exercise.name, undefined, [
@@ -31,12 +32,11 @@ export default function Session() {
     ]);
   };
   const add = () => { w.setExercise(w.blocks.length - 1); router.push('/routines/pick?session=add'); };
-  const finish = () =>
-    Alert.alert('End session?', `${done} of ${total} sets logged.`, [
+  const finish = () => started ? Alert.alert('End session?', `${done} of ${total} sets logged.`, [
       { text: 'Keep going', style: 'cancel' },
       { text: 'Cancel session', style: 'destructive', onPress: async () => { await w.cancel(); router.dismissTo('/'); } },
       { text: 'Finish', onPress: async () => { await w.finish(); router.dismissTo('/'); } },
-    ]);
+    ]) : (w.cancel(), router.dismissTo('/'));
   const done = w.blocks.reduce((n, b) => n + b.sets.filter((x) => x.done).length, 0);
   const total = w.blocks.reduce((n, b) => n + b.sets.length, 0);
 
@@ -44,11 +44,11 @@ export default function Session() {
     <ScrollView style={{ backgroundColor: t.bg }} scrollEnabled={!dragging} contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
       <View style={s.head}>
         <View style={{ gap: 4 }}>
-          <Label>{fmtClock((now - w.startedAt) / 1000)} elapsed</Label>
+          <Label color={started ? t.mute : t.accent}>{started ? `${fmtClock((now - w.startedAt) / 1000)} elapsed` : 'Preview · not started'}</Label>
           <Doto size={36}>{w.title.toUpperCase()}</Doto>
         </View>
         <Pressable onPress={finish} hitSlop={10} style={{ alignItems: 'flex-end', gap: 4 }}>
-          <Label color={t.accent}>Finish</Label>
+          <Label color={t.accent}>{started ? 'Finish' : 'Discard'}</Label>
           <Doto size={22} color={t.mute}>{done}/{total}</Doto>
         </Pressable>
       </View>

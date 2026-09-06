@@ -17,7 +17,7 @@ type Recent = Awaited<ReturnType<typeof recentSessions>>[number];
 export default function Home() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
-  const start = useWorkout((s) => s.start);
+  const preview = useWorkout((s) => s.preview);
   const active = useWorkout((s) => s.sessionId !== null);
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [recent, setRecent] = useState<Recent[]>([]);
@@ -40,7 +40,7 @@ export default function Home() {
     }
     setBusy(true);
     try {
-      await start(r);
+      await preview(r);
       router.push('/session');
     } finally {
       setBusy(false);
@@ -74,7 +74,7 @@ export default function Home() {
               <Doto size={28}>{r.name.toUpperCase()}</Doto>
               <Label color={next ? t.accent : t.dim}>{next ? 'Up next · ' : ''}{ago === null ? 'never done' : ago === 0 ? 'today' : `${ago}d ago`}</Label>
             </View>
-            <Label color={t.accent}>Start</Label>
+            <Label color={t.accent}>{active ? 'Resume' : 'Preview'}</Label>
           </Pressable>
         );
       })}
