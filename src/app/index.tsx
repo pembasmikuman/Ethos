@@ -12,7 +12,7 @@ import { useUi } from '../store/ui';
 import { Doto, Label } from '../components/Text';
 
 const MUSCLES: [string, string][] = [['CHEST', 'chest'], ['BACK', 'back'], ['QUAD', 'quads'], ['HAM', 'hamstrings'], ['GLUTE', 'glutes'], ['DELT', 'delts'], ['BI', 'biceps'], ['TRI', 'triceps'], ['CALF', 'calves'], ['ABS', 'abs']];
-const FULL: Record<string, string> = { quads: 'quadriceps', hamstrings: 'hamstrings', delts: 'deltoids', biceps: 'biceps', triceps: 'triceps', calves: 'calves', glutes: 'glutes', chest: 'chest', back: 'back', abs: 'abs' };
+const FULL: Record<string, string> = { quads: 'quadriceps', hamstrings: 'hamstrings', delts: 'delts', biceps: 'biceps', triceps: 'triceps', calves: 'calves', glutes: 'glutes', chest: 'chest', back: 'back', abs: 'abs' };
 
 type Recent = Awaited<ReturnType<typeof recentSessions>>[number];
 
@@ -74,7 +74,7 @@ export default function Home() {
               const on = shown.includes(key);
               return (
                 <Pressable key={key} onPress={() => toggle(key)} style={[s.chip, { borderColor: on ? t.accent : t.line, backgroundColor: on ? t.accent : 'transparent' }]}>
-                  <Label color={on ? t.bg : t.mute}>{label}</Label>
+                  <Label color={on ? t.bg : t.mute}>{FULL[key]}</Label>
                 </Pressable>
               );
             })}
