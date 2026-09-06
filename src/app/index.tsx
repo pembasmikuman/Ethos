@@ -2,9 +2,8 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { allSessions, listRoutines, recentSessions, setsSince, strengthLeaders, type Routine } from '../db/queries';
-import { daysAgo, sessionsPerWeek, upNext, weeklyVolume, weekStart } from '../lib/progression';
-import { fmtKg } from '../lib/format';
+import { allSessions, listRoutines, recentSessions, setsSince, type Routine } from '../db/queries';
+import { daysAgo, sessionGrid, upNext, weeklyVolume, weekStart } from '../lib/progression';
 import { DotBars } from '../components/DotBars';
 import { DOCK_HEIGHT } from '../components/Dock';
 import { useTheme, useTopInset } from '../lib/theme';
@@ -28,8 +27,7 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const [volume, setVolume] = useState<Record<string, number>>({});
   const [editing, setEditing] = useState(false);
-  const [weeks, setWeeks] = useState<number[]>([]);
-  const [leaders, setLeaders] = useState<Awaited<ReturnType<typeof strengthLeaders>>>([]);
+  const [grid, setGrid] = useState<number[][]>([]);
   const [page, setPage] = useState(0);
   const [panelW, setPanelW] = useState(0);
   const shown = useUi((s) => s.volumeMuscles);
@@ -40,8 +38,7 @@ export default function Home() {
       listRoutines().then((r) => setRoutines(upNext(r)));
       recentSessions().then(setRecent);
       setsSince(weekStart()).then((rows) => setVolume(weeklyVolume(rows)));
-      allSessions().then((rows) => setWeeks(sessionsPerWeek(rows.map((r) => r.start_time))));
-      strengthLeaders().then(setLeaders);
+      allSessions().then((rows) => setGrid(sessionGrid(rows.map((r) => r.start_time))));
     }, []),
   );
 
@@ -99,34 +96,35 @@ export default function Home() {
 
           <View style={{ width: panelW + 32, paddingHorizontal: 16 }}><View style={[s.panel, { backgroundColor: t.card, borderColor: t.line }]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Label>Sessions · last 8 weeks</Label>
-              <Label color={t.green}>3–5 a week</Label>
+              <Label>Training days · 6 weeks</Label>
+              <Label color={t.green}>{grid[grid.length - 1]?.filter(Boolean).length ?? 0} this week</Label>
             </View>
-            <DotBars items={weeks.map((v, i) => ({ label: i === weeks.length - 1 ? 'NOW' : `-${weeks.length - 1 - i}W`, value: v }))} max={7} band={[3, 5]} />
-          </View></View>
-
-          <View style={{ width: panelW + 32, paddingHorizontal: 16 }}><View style={[s.panel, { backgroundColor: t.card, borderColor: t.line }]}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Label>Strength · est. 1RM · 30 days</Label>
-              <Label color={t.dim}>vs prior 30</Label>
+            <View style={{ gap: 8 }}>
+              <View style={s.gridRow}>
+                <Label color={t.dim} style={{ width: 44 }} />
+                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => <Label key={i} color={t.dim} style={s.gridCell}>{d}</Label>)}
+              </View>
+              {grid.map((week, wi) => {
+                const last = wi === grid.length - 1;
+                return (
+                  <View key={wi} style={s.gridRow}>
+                    <Label color={last ? t.text : t.dim} style={{ width: 44 }}>{last ? 'now' : `-${grid.length - 1 - wi}w`}</Label>
+                    {week.map((n, di) => {
+                      const future = last && di > (new Date().getDay() + 6) % 7;
+                      return (
+                        <View key={di} style={s.gridCell}>
+                          <View style={{ width: n ? 10 : 5, height: n ? 10 : 5, borderRadius: 5, backgroundColor: n ? t.green : future ? 'transparent' : t.dim, borderWidth: future ? 1 : 0, borderColor: t.line }} />
+                        </View>
+                      );
+                    })}
+                  </View>
+                );
+              })}
             </View>
-            {leaders.length === 0 && <Label color={t.dim}>Log a few sessions first.</Label>}
-            {leaders.map((l) => {
-              const delta = l.before === null ? null : l.now - l.before;
-              return (
-                <Pressable key={l.id} onPress={() => router.push(`/exercise/${l.id}`)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <Label style={{ flex: 1 }} numberOfLines={1}>{l.name}</Label>
-                  <Doto size={20}>{fmtKg(Math.round(l.now))}</Doto>
-                  <Label color={delta === null ? t.dim : delta >= 0 ? t.green : t.accent} style={{ width: 52, textAlign: 'right' }}>
-                    {delta === null ? 'new' : `${delta >= 0 ? '+' : ''}${fmtKg(Math.round(delta))}`}
-                  </Label>
-                </Pressable>
-              );
-            })}
           </View></View>
         </ScrollView>
         <View style={s.pageDots}>
-          {[0, 1, 2].map((i) => <View key={i} style={{ width: i === page ? 14 : 6, height: 6, borderRadius: 3, backgroundColor: i === page ? t.accent : t.dim }} />)}
+          {[0, 1].map((i) => <View key={i} style={{ width: i === page ? 14 : 6, height: 6, borderRadius: 3, backgroundColor: i === page ? t.accent : t.dim }} />)}
         </View>
       </View>
 
@@ -177,6 +175,8 @@ const s = StyleSheet.create({
   card: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 18, borderRadius: 16, borderWidth: 1, minHeight: 64 },
   panel: { padding: 16, borderRadius: 16, borderWidth: 1, gap: 12 },
   pageDots: { flexDirection: 'row', justifyContent: 'center', gap: 6, paddingTop: 10 },
+  gridRow: { flexDirection: 'row', alignItems: 'center' },
+  gridCell: { flex: 1, alignItems: 'center', justifyContent: 'center', textAlign: 'center', height: 16 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, minHeight: 44 },

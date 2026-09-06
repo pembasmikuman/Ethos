@@ -82,15 +82,17 @@ export function daysAgo(iso: string | null, now = Date.now()): number | null {
   return iso ? Math.floor((now - new Date(iso).getTime()) / 86400000) : null;
 }
 
-/** Sessions per ISO week for the last `weeks` weeks, oldest first. */
-export function sessionsPerWeek(startTimes: string[], weeks = 8, now = Date.now()): number[] {
-  const start = new Date(weekStart(new Date(now))).getTime();
-  const out = Array(weeks).fill(0) as number[];
-  const WEEK = 7 * 86400000;
+/** Day grid, `weeks` rows oldest first, 7 columns Mon..Sun. Cell = sessions that day. */
+export function sessionGrid(startTimes: string[], weeks = 6, now = Date.now()): number[][] {
+  const grid = Array.from({ length: weeks }, () => Array(7).fill(0) as number[]);
+  const monday = new Date(weekStart(new Date(now))).getTime();
+  const DAY = 86400000;
   for (const iso of startTimes) {
-    const k = Math.floor((start + WEEK - new Date(iso).getTime()) / WEEK); // 0 = this week
-    const i = weeks - 1 - k;
-    if (i >= 0 && i < weeks) out[i] += 1;
+    const d = new Date(iso);
+    d.setHours(0, 0, 0, 0);
+    const dayOff = Math.round((d.getTime() - monday) / DAY); // 0 = this Monday, negative = past
+    const w = weeks - 1 + Math.floor(dayOff / 7);
+    if (w >= 0 && w < weeks) grid[w][((dayOff % 7) + 7) % 7] += 1;
   }
-  return out;
+  return grid;
 }

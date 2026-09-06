@@ -59,10 +59,12 @@ test('daysAgo', () => {
   expect(daysAgo('2026-09-01T10:00:00Z', Date.parse('2026-09-04T09:00:00Z'))).toBe(2);
 });
 
-import { sessionsPerWeek } from '../lib/progression';
+import { sessionGrid } from '../lib/progression';
 
-test('sessionsPerWeek buckets by Monday weeks, oldest first', () => {
-  const now = Date.parse('2026-09-06T12:00:00'); // Sunday
-  const out = sessionsPerWeek(['2026-09-01T10:00:00', '2026-09-06T09:00:00', '2026-08-26T10:00:00', '2026-06-01T10:00:00'], 4, now);
-  expect(out).toEqual([0, 0, 1, 2]);
+test('sessionGrid places sessions by week row and weekday column', () => {
+  const now = Date.parse('2026-09-06T12:00:00'); // Sunday; this week's Monday is Aug 31
+  const g = sessionGrid(['2026-09-01T10:00:00', '2026-09-06T09:00:00', '2026-08-26T10:00:00'], 3, now);
+  expect(g[2]).toEqual([0, 1, 0, 0, 0, 0, 1]); // Tue, Sun this week
+  expect(g[1]).toEqual([0, 0, 1, 0, 0, 0, 0]); // Wed last week
+  expect(g[0]).toEqual([0, 0, 0, 0, 0, 0, 0]);
 });
