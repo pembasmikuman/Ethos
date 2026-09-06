@@ -21,6 +21,8 @@ type State = {
   start: (routine: Routine) => Promise<void>;
   /** Insert exercise after current, or swap current (drops its unlogged sets). */
   addExercise: (ex: Exercise, swap?: boolean) => Promise<void>;
+  removeExercise: (i: number) => void;
+  reorderExercises: (from: number, to: number) => void;
   setExercise: (i: number) => void;
   setFocus: (setIdx: number, field: Field) => void;
   input: (value: string) => void;
@@ -77,6 +79,19 @@ export const useWorkout = create<State>((set, get) => ({
     const next = [...blocks];
     next.splice(idx, replace ? 1 : 0, block);
     set({ blocks: next, exIdx: idx, focus: { setIdx: 0, field: 'weight' } });
+  },
+
+  removeExercise(i) {
+    const { blocks, exIdx } = get();
+    const next = blocks.filter((_, k) => k !== i);
+    set({ blocks: next, exIdx: Math.min(exIdx > i ? exIdx - 1 : exIdx, Math.max(0, next.length - 1)), focus: { setIdx: 0, field: 'weight' } });
+  },
+
+  reorderExercises(from, to) {
+    const { blocks, exIdx } = get();
+    const next = [...blocks];
+    next.splice(to, 0, next.splice(from, 1)[0]);
+    set({ blocks: next, exIdx: next.indexOf(blocks[exIdx]) });
   },
 
   setExercise(i) {

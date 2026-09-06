@@ -1,7 +1,5 @@
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { listRoutines, removeRoutineExercise, renameRoutine, reorderRoutine, routineExerciseRows, setTargetSets, type RoutineExercise } from '../../db/queries';
@@ -9,43 +7,7 @@ import { fonts, useTheme } from '../../lib/theme';
 import { tapHaptic } from '../../lib/rest';
 import { Doto, Label } from '../../components/Text';
 import { DOCK_HEIGHT } from '../../components/Dock';
-
-const H = 64;
-const SNAP = { damping: 26, stiffness: 320, mass: 1 };
-
-type DragProps = { index: number; count: number; active: SharedValue<number>; dy: SharedValue<number>; onDrop: (from: number, to: number) => void; onGrab: () => void; children: ReactNode };
-
-function DragRow({ index, count, active, dy, onDrop, onGrab, children }: DragProps) {
-  const clamp = (n: number) => {
-    'worklet';
-    return Math.max(0, Math.min(count - 1, n));
-  };
-  const pan = Gesture.Pan()
-    .activateAfterLongPress(150)
-    .onStart(() => { active.value = index; dy.value = 0; runOnJS(onGrab)(); })
-    .onUpdate((e) => { dy.value = e.translationY; })
-    .onFinalize(() => {
-      const to = clamp(index + Math.round(dy.value / H));
-      active.value = -1;
-      dy.value = 0;
-      runOnJS(onDrop)(index, to);
-    });
-  const style = useAnimatedStyle(() => {
-    if (active.value === index) return { transform: [{ translateY: dy.value }, { scale: 1.02 }], zIndex: 10 };
-    if (active.value === -1) return { transform: [{ translateY: 0 }, { scale: 1 }], zIndex: 0 };
-    const target = clamp(active.value + Math.round(dy.value / H));
-    const shift = active.value < index && index <= target ? -H : target <= index && index < active.value ? H : 0;
-    return { transform: [{ translateY: withSpring(shift, SNAP) }, { scale: 1 }], zIndex: 0 };
-  });
-  return (
-    <Animated.View style={style}>
-      {children}
-      <GestureDetector gesture={pan}>
-        <View style={s.handle}><Label size={16}>≡</Label></View>
-      </GestureDetector>
-    </Animated.View>
-  );
-}
+import { DragRow, ROW_H, useDragList } from '../../components/DragRow';
 
 export default function RoutineEditor() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -54,8 +16,7 @@ export default function RoutineEditor() {
   const [name, setName] = useState('');
   const [rows, setRows] = useState<RoutineExercise[]>([]);
   const [dragging, setDragging] = useState(false);
-  const active = useSharedValue(-1);
-  const dy = useSharedValue(0);
+  const drag = useDragList();
 
   const load = async () => {
     setRows(await routineExerciseRows(id));
@@ -109,7 +70,7 @@ export default function RoutineEditor() {
       <Label style={s.section}>Exercises</Label>
       {rows.length === 0 && <Label color={t.dim} style={{ paddingHorizontal: 4 }}>Empty. Add one below.</Label>}
       {rows.map((r, i) => (
-        <DragRow key={r.re_id} index={i} count={rows.length} active={active} dy={dy} onDrop={drop} onGrab={grab}>
+        <DragRow key={r.re_id} index={i} count={rows.length} drag={drag} onDrop={drop} onGrab={grab}>
         <Pressable onPress={() => router.push(`/exercise/${r.id}`)} onLongPress={() => confirmRemove(r)} style={[s.row, { borderBottomColor: t.line, backgroundColor: t.bg }]}>
           <View style={{ flex: 1, gap: 4 }}>
             <Doto size={20}>{r.name.toUpperCase()}</Doto>
@@ -138,8 +99,7 @@ const s = StyleSheet.create({
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 4, paddingBottom: 12 },
   section: { paddingHorizontal: 4, paddingTop: 18, paddingBottom: 8 },
   name: { fontFamily: fonts.doto, fontSize: 32, paddingVertical: 8, paddingHorizontal: 4, borderBottomWidth: 1 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 4, borderBottomWidth: 1, height: H },
-  handle: { position: 'absolute', right: 0, top: 0, width: 44, height: H, alignItems: 'center', justifyContent: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 4, borderBottomWidth: 1, height: ROW_H },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   key: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   add: { marginTop: 16, borderWidth: 1, borderStyle: 'dashed', borderRadius: 12, padding: 18, alignItems: 'center' },

@@ -24,7 +24,7 @@ const ICONS: Record<string, string> = {
 
 const ALL_ITEMS: { key: string; label: string; href: string }[] = [
   { key: 'home', label: 'Home', href: '/' },
-  { key: 'log', label: 'Log', href: '/workout' },
+  { key: 'log', label: 'Log', href: '/session' },
   { key: 'history', label: 'History', href: '/history' },
   { key: 'exercises', label: 'Moves', href: '/exercises' },
   { key: 'settings', label: 'Settings', href: '/settings' },
@@ -65,7 +65,7 @@ export function Dock() {
   const NAV = active ? ALL_ITEMS : ALL_ITEMS.filter((i) => i.key !== 'log');
   // Contextual action: "+" in the middle of the pill, only on the Moves screen.
   const ITEMS = path === '/exercises' ? [...NAV.slice(0, Math.ceil(NAV.length / 2)), { key: 'new', label: 'New', href: '/exercise/new' }, ...NAV.slice(Math.ceil(NAV.length / 2))] : NAV;
-  const selected = Math.max(0, ITEMS.findIndex((i) => i.href === path || (i.href === '/workout' && path === '/rest') || (i.href === '/history' && path.startsWith('/history')) || (i.href === '/exercises' && path.startsWith('/exercise'))));
+  const selected = Math.max(0, ITEMS.findIndex((i) => i.href === path || (i.href === '/session' && (path === '/workout' || path === '/rest')) || (i.href === '/history' && path.startsWith('/history')) || (i.href === '/exercises' && path.startsWith('/exercise'))));
   const x = useSharedValue(selected * ITEM_W);
   const startX = useSharedValue(0);
   const dragging = useSharedValue(false);

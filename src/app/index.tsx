@@ -35,13 +35,13 @@ export default function Home() {
   const go = async (r: Routine) => {
     if (busy) return;
     if (active) {
-      router.push('/workout');
+      router.push('/session');
       return;
     }
     setBusy(true);
     try {
       await start(r);
-      router.push('/workout');
+      router.push('/session');
     } finally {
       setBusy(false);
     }

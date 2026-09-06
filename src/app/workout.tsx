@@ -52,8 +52,8 @@ export default function Workout() {
   const onFinish = () =>
     Alert.alert('End workout?', 'Finish saves it. Cancel deletes every set logged this session.', [
       { text: 'Keep going', style: 'cancel' },
-      { text: 'Cancel session', style: 'destructive', onPress: async () => { await w.cancel(); router.replace('/'); } },
-      { text: 'Finish', onPress: async () => { await w.finish(); router.replace('/'); } },
+      { text: 'Cancel session', style: 'destructive', onPress: async () => { await w.cancel(); router.dismissTo('/'); } },
+      { text: 'Finish', onPress: async () => { await w.finish(); router.dismissTo('/'); } },
     ]);
 
   const onExerciseMenu = () =>
@@ -70,7 +70,7 @@ export default function Workout() {
     <View style={[s.page, { backgroundColor: t.bg, paddingTop: insets.top + 8, paddingBottom: insets.bottom + DOCK_HEIGHT }]}>
       <View style={s.head}>
         <View style={{ gap: 4, flex: 1 }}>
-          <Label>{w.title} · {w.exIdx + 1} / {w.blocks.length}</Label>
+          <Pressable onPress={() => router.navigate('/session')} hitSlop={8}><Label color={t.accent}>‹ {w.title} · {w.exIdx + 1} / {w.blocks.length}</Label></Pressable>
           <Pressable onPress={onExerciseMenu} hitSlop={8}>
             <Doto size={30} numberOfLines={1}>{block.exercise.name.toUpperCase()}</Doto>
           </Pressable>
