@@ -102,6 +102,7 @@ export default function SessionDetail() {
   return (
     <View style={{ flex: 1, backgroundColor: t.bg }}>
       <ScrollView contentContainerStyle={[st.page, { paddingTop: insets.top + 12, paddingBottom: (edit ? 12 : insets.bottom + DOCK_HEIGHT + 12) }]}>
+        <Pressable onPress={() => edit && setEdit(null)} style={StyleSheet.absoluteFill} />
         <Pressable onPress={() => router.back()} hitSlop={10} style={{ paddingHorizontal: 4, minHeight: 44, justifyContent: 'center' }}>
           <Label color={t.text}>‹ History</Label>
         </Pressable>
