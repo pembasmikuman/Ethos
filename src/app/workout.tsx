@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../lib/theme';
@@ -10,7 +10,66 @@ import { Doto, Label } from '../components/Text';
 import { Numpad } from '../components/Numpad';
 import { SetRow } from '../components/SetRow';
 import { DOCK_HEIGHT } from '../components/Dock';
-import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import type { ExerciseBlock } from '../store/workout';
+
+function ExercisePage({ block, active, restLeft }: { block: ExerciseBlock; active: boolean; restLeft: number }) {
+  const t = useTheme();
+  const w = useWorkout();
+  let working = 0;
+  return (
+    <View style={{ flex: 1, gap: 12 }}>
+      {block.overload && (
+        <View style={[s.banner, { backgroundColor: t.warnBg, borderColor: t.warnLine }]}>
+          <View style={[s.dot, { backgroundColor: t.accent }]} />
+          <Label color={t.accent} style={{ flex: 1 }}>Ready to overload</Label>
+          <Doto size={18} color={t.accent}>+{fmtKg(block.exercise.increment_kg)} kg</Doto>
+        </View>
+      )}
+      {block.stalled && !block.overload && (
+        <View style={[s.banner, { backgroundColor: t.card, borderColor: t.line }]}>
+          <View style={[s.dot, { backgroundColor: t.mute }]} />
+          <Label style={{ flex: 1 }}>Stalled 3 sessions · try −10%</Label>
+        </View>
+      )}
+      {active && w.rest && restLeft > 0 && (
+        <Pressable onPress={() => router.push('/rest')} style={[s.banner, { backgroundColor: t.warnBg, borderColor: t.warnLine }]}>
+          <View style={[s.dot, { backgroundColor: t.accent }]} />
+          <Label color={t.accent} style={{ flex: 1 }}>Resting</Label>
+          <Doto size={18} color={t.accent}>{fmtClock(restLeft)}</Doto>
+        </Pressable>
+      )}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 4 }}>
+        {block.sets.map((set, i) => {
+          if (set.type === 'working') working += 1;
+          const n = working;
+          return (
+            <SetRow
+              key={set.id}
+              index={i}
+              workingNumber={n}
+              set={set}
+              prev={set.type === 'working' ? block.prev[n - 1] : undefined}
+              targetMax={block.exercise.target_rep_max}
+              active={active && i === w.focus.setIdx}
+              focusField={active && i === w.focus.setIdx ? w.focus.field : null}
+              onFocus={(f) => w.setFocus(i, f)}
+              onLongPress={() =>
+                Alert.alert('Remove set?', undefined, [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Remove', style: 'destructive', onPress: () => w.removeSet(i) },
+                ])
+              }
+            />
+          );
+        })}
+        <View style={s.actions}>
+          <Pressable onPress={() => w.addSet('warmup')} hitSlop={8}><Label color={t.warm}>+ Warmups</Label></Pressable>
+          <Pressable onPress={() => w.addSet()} hitSlop={8}><Label>+ Set</Label></Pressable>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
 
 export default function Workout() {
   const t = useTheme();
@@ -18,6 +77,16 @@ export default function Workout() {
   const w = useWorkout();
   const block = w.blocks[w.exIdx];
   const [now, setNow] = useState(Date.now());
+  const pageW = useWindowDimensions().width - 32;
+  const pager = useRef<ScrollView>(null);
+  const shown = useRef(w.exIdx);
+
+  // Follow exIdx changes made elsewhere (overview, prev/next).
+  useEffect(() => {
+    if (shown.current === w.exIdx) return;
+    shown.current = w.exIdx;
+    pager.current?.scrollTo({ x: w.exIdx * pageW, animated: true });
+  }, [w.exIdx, pageW]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -64,7 +133,6 @@ export default function Workout() {
     ]);
 
   const restLeft = w.rest ? Math.round((w.rest.endsAt - now) / 1000) : 0;
-  let working = 0;
 
   return (
     <View style={[s.page, { backgroundColor: t.bg, paddingTop: insets.top + 8, paddingBottom: insets.bottom + DOCK_HEIGHT }]}>
@@ -81,68 +149,32 @@ export default function Workout() {
         </Pressable>
       </View>
 
-      {block.overload && (
-        <View style={[s.banner, { backgroundColor: t.warnBg, borderColor: t.warnLine }]}>
-          <View style={[s.dot, { backgroundColor: t.accent }]} />
-          <Label color={t.accent} style={{ flex: 1 }}>Ready to overload</Label>
-          <Doto size={18} color={t.accent}>+{fmtKg(block.exercise.increment_kg)} kg</Doto>
-        </View>
-      )}
-      {block.stalled && !block.overload && (
-        <View style={[s.banner, { backgroundColor: t.card, borderColor: t.line }]}>
-          <View style={[s.dot, { backgroundColor: t.mute }]} />
-          <Label style={{ flex: 1 }}>Stalled 3 sessions · try −10%</Label>
-        </View>
-      )}
-      {w.rest && restLeft > 0 && (
-        <Pressable onPress={() => router.push('/rest')} style={[s.banner, { backgroundColor: t.warnBg, borderColor: t.warnLine }]}>
-          <View style={[s.dot, { backgroundColor: t.accent }]} />
-          <Label color={t.accent} style={{ flex: 1 }}>Resting</Label>
-          <Doto size={18} color={t.accent}>{fmtClock(restLeft)}</Doto>
-        </Pressable>
-      )}
-
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 4 }}>
-        {block.sets.map((set, i) => {
-          if (set.type === 'working') working += 1;
-          const n = working;
-          return (
-            <Swipeable
-              key={set.id}
-              friction={2}
-              rightThreshold={64}
-              overshootRight={false}
-              onSwipeableOpen={() => { tapHaptic(); w.removeSet(i); }}
-              renderRightActions={() => (
-                <View style={{ width: 96, alignItems: 'center', justifyContent: 'center' }}><Label color={t.accent}>Remove</Label></View>
-              )}
-            >
-            <SetRow
-              index={i}
-              workingNumber={n}
-              set={set}
-              prev={set.type === 'working' ? block.prev[n - 1] : undefined}
-              targetMax={block.exercise.target_rep_max}
-              active={i === w.focus.setIdx}
-              focusField={i === w.focus.setIdx ? w.focus.field : null}
-              onFocus={(f) => w.setFocus(i, f)}
-            />
-            </Swipeable>
-          );
-        })}
-        <View style={s.actions}>
-          <Pressable onPress={() => w.addSet('warmup')} hitSlop={8}><Label color={t.warm}>+ Warmups</Label></Pressable>
-          <Pressable onPress={() => w.addSet()} hitSlop={8}><Label>+ Set</Label></Pressable>
-        </View>
+      <ScrollView
+        ref={pager}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        contentOffset={{ x: w.exIdx * pageW, y: 0 }}
+        onMomentumScrollEnd={(e) => {
+          const i = Math.round(e.nativeEvent.contentOffset.x / pageW);
+          if (i !== shown.current) { shown.current = i; tapHaptic(); w.setExercise(i); }
+        }}
+        style={{ flex: 1, marginHorizontal: -16 }}
+      >
+        {w.blocks.map((b, bi) => (
+          <View key={b.exercise.id + bi} style={{ width: pageW, marginHorizontal: 16 }}>
+            <ExercisePage block={b} active={bi === w.exIdx} restLeft={restLeft} />
+          </View>
+        ))}
       </ScrollView>
 
       <View style={s.nav}>
         <Pressable disabled={w.exIdx === 0} onPress={() => w.setExercise(w.exIdx - 1)} hitSlop={8} style={{ minHeight: 44, justifyContent: 'center' }}>
           <Label color={w.exIdx === 0 ? t.dim : t.text}>‹ Prev</Label>
         </Pressable>
-        <Label color={t.dim} numberOfLines={1} style={{ flex: 1, textAlign: 'center' }}>
-          {w.blocks[w.exIdx + 1] ? `Next · ${w.blocks[w.exIdx + 1].exercise.name}` : 'Last exercise'}
-        </Label>
+        <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 6 }}>
+          {w.blocks.map((b, i) => <View key={i} style={{ width: i === w.exIdx ? 14 : 6, height: 6, borderRadius: 3, backgroundColor: i === w.exIdx ? t.accent : b.sets.length > 0 && b.sets.every((x) => x.done) ? t.green : t.dim }} />)}
+        </View>
         <Pressable disabled={!w.blocks[w.exIdx + 1]} onPress={() => w.setExercise(w.exIdx + 1)} hitSlop={8} style={{ minHeight: 44, justifyContent: 'center' }}>
           <Label color={!w.blocks[w.exIdx + 1] ? t.dim : t.text}>Next ›</Label>
         </Pressable>
