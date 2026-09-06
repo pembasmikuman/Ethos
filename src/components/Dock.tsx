@@ -18,6 +18,7 @@ const ICONS: Record<string, string> = {
   log: 'M2 10h2v4H2zM20 10h2v4h-2zM5 8h2v8H5zM17 8h2v8h-2zM7 12h10',
   history: 'M12 8v4l3 2M21 12a9 9 0 1 1-3-6.7M21 4v4h-4',
   exercises: 'M4 5h16M4 12h10M4 19h13M18 10l3 2-3 2',
+  new: 'M12 5v14M5 12h14',
   settings: 'M4 6h16M4 12h16M4 18h16M9 4v4M15 10v4M7 16v4',
 };
 
@@ -61,7 +62,9 @@ export function Dock() {
   const hidden = useUi((s) => s.dockHidden);
   const [now, setNow] = useState(Date.now());
 
-  const ITEMS = active ? ALL_ITEMS : ALL_ITEMS.filter((i) => i.key !== 'log');
+  const NAV = active ? ALL_ITEMS : ALL_ITEMS.filter((i) => i.key !== 'log');
+  // Contextual action: "+" in the middle of the pill, only on the Moves screen.
+  const ITEMS = path === '/exercises' ? [...NAV.slice(0, Math.ceil(NAV.length / 2)), { key: 'new', label: 'New', href: '/exercise/new' }, ...NAV.slice(Math.ceil(NAV.length / 2))] : NAV;
   const selected = Math.max(0, ITEMS.findIndex((i) => i.href === path || (i.href === '/workout' && path === '/rest') || (i.href === '/history' && path.startsWith('/history')) || (i.href === '/exercises' && path.startsWith('/exercise'))));
   const x = useSharedValue(selected * ITEM_W);
   const startX = useSharedValue(0);
@@ -84,6 +87,11 @@ export function Dock() {
     if (i === selected) return;
     tapHaptic();
     const href = ITEMS[i].href;
+    if (ITEMS[i].key === 'new') {
+      x.value = withSpring(selected * ITEM_W, SNAP);
+      router.push(href as never);
+      return;
+    }
     if (href === '/') router.dismissTo('/');
     else router.navigate(href as never);
   };
@@ -128,17 +136,12 @@ export function Dock() {
 
   return (
     <Animated.View pointerEvents={hidden ? 'none' : 'box-none'} style={[s.wrap, { bottom: insets.bottom + 10 }, wrapStyle]}>
-      {path === '/exercises' && (
-        <AnimatedPressable entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)} onPress={() => { tapHaptic(); router.push('/exercise/new'); }} style={[s.fab, { backgroundColor: t.accent }]}>
-          <Svg width={26} height={26} viewBox="0 0 24 24" fill="none"><Path d="M12 5v14M5 12h14" stroke={t.bg} strokeWidth={2.2} strokeLinecap="round" /></Svg>
-        </AnimatedPressable>
-      )}
       <GestureDetector gesture={pan}>
         <AnimatedBlur layout={LinearTransition.springify().damping(26).stiffness(320)} intensity={40} tint={scheme === 'light' ? 'light' : 'dark'} style={[s.pill, { borderColor: t.line }]}>
           <Animated.View style={[s.highlight, { backgroundColor: glass, borderColor: t.line }, highlight]} />
           {ITEMS.map((it, i) => {
             const on = i === selected;
-            const ink = on ? t.accent : t.text;
+            const ink = on || it.key === 'new' ? t.accent : t.text;
             return (
               <AnimatedPressable key={it.key} entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)} layout={LinearTransition.springify().damping(26).stiffness(320)} disabled={on} onPress={() => go(i)} style={s.item}>
                 <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
@@ -159,8 +162,7 @@ export function Dock() {
 }
 
 const s = StyleSheet.create({
-  wrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: 12 },
-  fab: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+  wrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   pill: { flexDirection: 'row', borderRadius: 28, borderWidth: 1, overflow: 'hidden', paddingHorizontal: PAD },
   highlight: { position: 'absolute', left: PAD, top: 4, width: ITEM_W, height: 48, borderRadius: 24, borderWidth: 1 },
   item: { width: ITEM_W, height: 56, alignItems: 'center', justifyContent: 'center', gap: 3 },
