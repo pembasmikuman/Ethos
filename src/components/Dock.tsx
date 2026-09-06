@@ -57,13 +57,12 @@ export function Dock() {
   const insets = useSafeAreaInsets();
   const path = usePathname();
   const active = useWorkout((s) => s.sessionId !== null);
-  const loaded = useWorkout((s) => s.blocks.length > 0);
   const rest = useWorkout((s) => s.rest);
   const startedAt = useWorkout((s) => s.startedAt);
   const hidden = useUi((s) => s.dockHidden);
   const [now, setNow] = useState(Date.now());
 
-  const NAV = loaded ? ALL_ITEMS : ALL_ITEMS.filter((i) => i.key !== 'log');
+  const NAV = active ? ALL_ITEMS : ALL_ITEMS.filter((i) => i.key !== 'log');
   // Contextual action in the middle of the pill: "+" on Moves.
   const action = path === '/exercises' ? { key: 'new', label: 'New', href: '/exercise/new' } : null;
   const ITEMS = action ? [...NAV.slice(0, Math.ceil(NAV.length / 2)), action, ...NAV.slice(Math.ceil(NAV.length / 2))] : NAV;
