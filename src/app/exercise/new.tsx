@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { addRoutineExercise, createExercise } from '../../db/queries';
+import { addRoutineExercise, createExercise, exerciseById, renameExercise } from '../../db/queries';
 import { fonts, useTheme } from '../../lib/theme';
 import { Doto, Label } from '../../components/Text';
 import { DOCK_HEIGHT } from '../../components/Dock';
@@ -27,7 +27,7 @@ function Chips({ options, value, onChange }: { options: string[]; value: string;
 }
 
 export default function NewExercise() {
-  const { routine } = useLocalSearchParams<{ routine?: string }>();
+  const { routine, edit } = useLocalSearchParams<{ routine?: string; edit?: string }>();
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
@@ -35,8 +35,18 @@ export default function NewExercise() {
   const [equipment, setEquipment] = useState('barbell');
   const ok = name.trim().length > 0;
 
+  useEffect(() => {
+    if (!edit) return;
+    exerciseById(edit).then((e) => { if (e) { setName(e.name); setMuscle(e.primary_muscle); setEquipment(e.equipment ?? 'barbell'); } });
+  }, [edit]);
+
   const save = async () => {
     if (!ok) return;
+    if (edit) {
+      await renameExercise(edit, name.trim(), muscle, equipment);
+      router.back();
+      return;
+    }
     const id = await createExercise(name.trim(), muscle, equipment);
     if (routine) {
       await addRoutineExercise(routine, id);
@@ -47,7 +57,7 @@ export default function NewExercise() {
   return (
     <ScrollView style={{ backgroundColor: t.bg }} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
       <View style={s.head}>
-        <Doto size={32}>NEW EXERCISE</Doto>
+        <Doto size={32}>{edit ? 'EDIT' : 'NEW EXERCISE'}</Doto>
         <Pressable onPress={() => router.back()} hitSlop={12}><Label color={t.accent}>Cancel</Label></Pressable>
       </View>
       <Label style={s.section}>Name</Label>
@@ -57,7 +67,7 @@ export default function NewExercise() {
       <Label style={s.section}>Equipment</Label>
       <Chips options={EQUIPMENT} value={equipment} onChange={setEquipment} />
       <Pressable onPress={save} disabled={!ok} style={({ pressed }) => [s.save, { backgroundColor: ok ? t.accent : t.card, borderColor: ok ? t.accent : t.line, opacity: pressed ? 0.85 : 1 }]}>
-        <Label color={ok ? t.bg : t.dim}>Save · defaults 120s · 8–12 · 2.5 kg</Label>
+        <Label color={ok ? t.bg : t.dim}>{edit ? 'Save' : 'Save · defaults 120s · 8–12 · 2.5 kg'}</Label>
       </Pressable>
     </ScrollView>
   );

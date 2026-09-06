@@ -1,9 +1,9 @@
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Exercise } from '../../db';
-import { exerciseById, exerciseHistory, updateExercise, type ExerciseSettings } from '../../db/queries';
+import { deleteExercise, exerciseById, exerciseHistory, updateExercise, type ExerciseSettings } from '../../db/queries';
 import { epley1RM } from '../../lib/progression';
 import { fmtKg } from '../../lib/format';
 import { tapHaptic } from '../../lib/rest';
@@ -47,11 +47,28 @@ export default function ExerciseDetail() {
     updateExercise(id, next);
   };
 
+  const onMenu = () =>
+    Alert.alert(ex.name, undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Edit name · muscle · equipment', onPress: () => router.push(`/exercise/new?edit=${id}`) },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          if (await deleteExercise(id)) router.back();
+          else Alert.alert('Has history', 'Exercises with logged sets stay. Remove it from routines instead.');
+        },
+      },
+    ]);
+
   const best = hist.map((h) => Math.round(Math.max(...h.sets.map((x) => epley1RM(x.weight, x.reps, x.rir ?? 0))))).reverse();
 
   return (
     <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
-      <Pressable onPress={() => router.back()} hitSlop={12} style={{ paddingHorizontal: 4, paddingBottom: 12 }}><Label color={t.accent}>‹ Back</Label></Pressable>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4, paddingBottom: 12 }}>
+        <Pressable onPress={() => router.back()} hitSlop={12}><Label color={t.accent}>‹ Back</Label></Pressable>
+        <Pressable onPress={onMenu} hitSlop={12}><Label color={t.accent}>Edit</Label></Pressable>
+      </View>
       <Doto size={32}>{ex.name.toUpperCase()}</Doto>
       <Label style={{ paddingTop: 4 }}>{ex.primary_muscle}{ex.secondary_muscles ? ` · ${ex.secondary_muscles}` : ''} · {ex.equipment}</Label>
 

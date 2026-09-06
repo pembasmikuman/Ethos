@@ -273,3 +273,18 @@ export async function exerciseHistory(exerciseId: string, n = 12): Promise<{ ses
   }
   return out;
 }
+
+export async function renameExercise(id: string, name: string, primary: string, equipment: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('UPDATE exercises SET name = ?, primary_muscle = ?, equipment = ? WHERE id = ?', [name, primary, equipment, id]);
+}
+
+/** Refuses if the exercise has logged sets. Returns false in that case. */
+export async function deleteExercise(id: string): Promise<boolean> {
+  const db = await getDb();
+  const used = await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM logged_sets WHERE exercise_id = ?', [id]);
+  if (used && used.n > 0) return false;
+  await db.runAsync('DELETE FROM routine_exercises WHERE exercise_id = ?', [id]);
+  await db.runAsync('DELETE FROM exercises WHERE id = ?', [id]);
+  return true;
+}
