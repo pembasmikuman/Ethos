@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../lib/theme';
 import { fmtClock } from '../lib/format';
-import { tapHaptic } from '../lib/rest';
+import { doneHaptic, tapHaptic } from '../lib/rest';
 import { useWorkout } from '../store/workout';
 import { Doto, Label } from '../components/Text';
 import { DOCK_HEIGHT } from '../components/Dock';
@@ -41,7 +41,8 @@ export default function Session() {
   const total = w.blocks.reduce((n, b) => n + b.sets.length, 0);
 
   return (
-    <ScrollView style={{ backgroundColor: t.bg }} scrollEnabled={!dragging} contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
+    <View style={{ flex: 1, backgroundColor: t.bg }}>
+    <ScrollView scrollEnabled={!dragging} contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + (started ? 12 : 90) }]}>
       <View style={s.head}>
         <View style={{ gap: 4 }}>
           <Label color={started ? t.mute : t.accent}>{started ? `${fmtClock((now - w.startedAt) / 1000)} elapsed` : 'Preview · not started'}</Label>
@@ -77,6 +78,16 @@ export default function Session() {
         <Label color={t.accent}>+ Add exercise</Label>
       </Pressable>
     </ScrollView>
+    {!started && (
+      <Pressable
+        onPress={async () => { doneHaptic(); await w.begin(); open(0); }}
+        style={({ pressed }) => [s.start, { backgroundColor: t.accent, bottom: insets.bottom + DOCK_HEIGHT + 8, transform: [{ scale: pressed ? 0.97 : 1 }] }]}
+      >
+        <Doto size={26} color={t.bg}>START</Doto>
+        <Label color={t.bg}>{w.blocks.length} exercises · {total} sets</Label>
+      </Pressable>
+    )}
+    </View>
   );
 }
 
@@ -84,5 +95,6 @@ const s = StyleSheet.create({
   page: { paddingHorizontal: 16 },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 4, paddingBottom: 16 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 4, borderBottomWidth: 1, height: ROW_H },
+  start: { position: 'absolute', left: 16, right: 16, height: 68, borderRadius: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22 },
   add: { marginTop: 16, borderWidth: 1, borderStyle: 'dashed', borderRadius: 12, padding: 18, alignItems: 'center' },
 });

@@ -19,7 +19,6 @@ const ICONS: Record<string, string> = {
   history: 'M12 8v4l3 2M21 12a9 9 0 1 1-3-6.7M21 4v4h-4',
   exercises: 'M4 5h16M4 12h10M4 19h13M18 10l3 2-3 2',
   new: 'M12 5v14M5 12h14',
-  start: 'M7 4l13 8-13 8z',
   settings: 'M4 6h16M4 12h16M4 18h16M9 4v4M15 10v4M7 16v4',
 };
 
@@ -59,15 +58,14 @@ export function Dock() {
   const path = usePathname();
   const active = useWorkout((s) => s.sessionId !== null);
   const loaded = useWorkout((s) => s.blocks.length > 0);
-  const begin = useWorkout((s) => s.begin);
   const rest = useWorkout((s) => s.rest);
   const startedAt = useWorkout((s) => s.startedAt);
   const hidden = useUi((s) => s.dockHidden);
   const [now, setNow] = useState(Date.now());
 
   const NAV = loaded ? ALL_ITEMS : ALL_ITEMS.filter((i) => i.key !== 'log');
-  // Contextual action in the middle of the pill: "+" on Moves, "Start" on an unstarted session preview.
-  const action = path === '/exercises' ? { key: 'new', label: 'New', href: '/exercise/new' } : path === '/session' && loaded && !active ? { key: 'start', label: 'Start', href: '' } : null;
+  // Contextual action in the middle of the pill: "+" on Moves.
+  const action = path === '/exercises' ? { key: 'new', label: 'New', href: '/exercise/new' } : null;
   const ITEMS = action ? [...NAV.slice(0, Math.ceil(NAV.length / 2)), action, ...NAV.slice(Math.ceil(NAV.length / 2))] : NAV;
   const selected = Math.max(0, ITEMS.findIndex((i) => i.href === path || (i.href === '/session' && (path === '/workout' || path === '/rest')) || (i.href === '/history' && path.startsWith('/history')) || (i.href === '/exercises' && path.startsWith('/exercise'))));
   const x = useSharedValue(selected * ITEM_W);
@@ -91,10 +89,9 @@ export function Dock() {
     if (i === selected) return;
     tapHaptic();
     const href = ITEMS[i].href;
-    if (ITEMS[i].key === 'new' || ITEMS[i].key === 'start') {
+    if (ITEMS[i].key === 'new') {
       x.value = withSpring(selected * ITEM_W, SNAP);
-      if (ITEMS[i].key === 'start') begin();
-      else router.push(href as never);
+      router.push(href as never);
       return;
     }
     if (href === '/') router.dismissTo('/');
@@ -146,7 +143,7 @@ export function Dock() {
           <Animated.View style={[s.highlight, { backgroundColor: glass, borderColor: t.line }, highlight]} />
           {ITEMS.map((it, i) => {
             const on = i === selected;
-            const ink = on || it.key === 'new' || it.key === 'start' ? t.accent : t.text;
+            const ink = on || it.key === 'new' ? t.accent : t.text;
             return (
               <AnimatedPressable key={it.key} entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)} layout={LinearTransition.springify().damping(26).stiffness(320)} disabled={on} onPress={() => go(i)} style={s.item}>
                 <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
