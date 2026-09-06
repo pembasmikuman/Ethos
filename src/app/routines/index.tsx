@@ -33,6 +33,7 @@ export default function Routines() {
         <Pressable onPress={() => router.back()} hitSlop={12}><Label color={t.accent}>Done</Label></Pressable>
       </View>
       <Label color={t.dim} style={{ paddingHorizontal: 4, paddingBottom: 6 }}>Tap to edit · hold to delete</Label>
+      {rows.length === 0 && <Label color={t.dim} style={{ paddingHorizontal: 4 }}>No routines yet.</Label>}
       {rows.map((r) => (
         <Pressable key={r.id} onPress={() => router.push(`/routines/${r.id}`)} onLongPress={() => confirmDelete(r)} style={({ pressed }) => [s.row, { borderBottomColor: t.line, opacity: pressed ? 0.7 : 1 }]}>
           <Doto size={22} style={{ flex: 1 }}>{r.name.toUpperCase()}</Doto>

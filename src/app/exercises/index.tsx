@@ -46,6 +46,7 @@ export default function Exercises() {
       <TextInput value={q} onChangeText={setQ} placeholder="search" placeholderTextColor={t.dim} autoCorrect={false} style={[s.search, { color: t.text, borderColor: t.line, backgroundColor: t.card }]} />
       {chips(MUSCLES, muscle, setMuscle)}
       {chips(EQUIPMENT, gear, setGear)}
+      {list.length === 0 && <Label color={t.dim} style={{ paddingHorizontal: 4, paddingTop: 18 }}>Nothing matches.</Label>}
       {list.map((e) => {
         const header = e.primary_muscle !== lastMuscle ? e.primary_muscle : null;
         lastMuscle = e.primary_muscle;

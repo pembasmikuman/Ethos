@@ -60,6 +60,7 @@ export default function Home() {
         <Label>Routines</Label>
         <Pressable onPress={() => router.push('/routines')} hitSlop={12}><Label color={t.accent}>Edit</Label></Pressable>
       </View>
+      {routines.length === 0 && <Label color={t.dim} style={{ paddingHorizontal: 4 }}>No routines. Tap Edit to build one.</Label>}
       {routines.map((r, i) => {
         const ago = daysAgo(r.last_done);
         const next = i === 0;
