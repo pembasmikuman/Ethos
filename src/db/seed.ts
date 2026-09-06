@@ -5,7 +5,7 @@ type Row = [string, string, string, string, string, number, number, number, numb
 
 const HEAVY = 210, HYPER = 150, ISO = 75;
 
-const EXERCISES: Row[] = [
+export const EXERCISES: Row[] = [
   // Chest
   ['bench', 'Barbell Bench Press', 'chest', 'triceps,delts', 'barbell', HEAVY, 5, 8, 2.5, 'Chest Press'],
   ['incline-db', 'Incline Dumbbell Press', 'chest', 'triceps,delts', 'dumbbell', HYPER, 8, 12, 2, 'Chest Press'],
