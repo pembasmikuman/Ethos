@@ -2,10 +2,14 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { listRoutines, recentSessions, type Routine } from '../db/queries';
+import { listRoutines, recentSessions, setsSince, type Routine } from '../db/queries';
+import { weeklyVolume, weekStart } from '../lib/progression';
+import { DotBars } from '../components/DotBars';
 import { useTheme } from '../lib/theme';
 import { useWorkout } from '../store/workout';
 import { Doto, Label } from '../components/Text';
+
+const MUSCLES: [string, string][] = [['CHEST', 'chest'], ['BACK', 'back'], ['QUAD', 'quads'], ['HAM', 'hamstrings'], ['DELT', 'delts'], ['BI', 'biceps'], ['TRI', 'triceps']];
 
 type Recent = Awaited<ReturnType<typeof recentSessions>>[number];
 
@@ -16,11 +20,13 @@ export default function Home() {
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [recent, setRecent] = useState<Recent[]>([]);
   const [busy, setBusy] = useState(false);
+  const [volume, setVolume] = useState<Record<string, number>>({});
 
   useFocusEffect(
     useCallback(() => {
       listRoutines().then(setRoutines);
       recentSessions().then(setRecent);
+      setsSince(weekStart()).then((rows) => setVolume(weeklyVolume(rows)));
     }, []),
   );
 
@@ -56,6 +62,14 @@ export default function Home() {
         </Pressable>
       ))}
 
+      <View style={[s.panel, { backgroundColor: t.card, borderColor: t.line }]}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <Label>This week · hard sets</Label>
+          <Label color={t.green}>10–20 band</Label>
+        </View>
+        <DotBars items={MUSCLES.map(([label, key]) => ({ label, value: volume[key] ?? 0 }))} />
+      </View>
+
       {recent.length > 0 && <Label style={s.section}>Recent</Label>}
       {recent.map((r) => {
         const mins = r.end_time ? Math.round((new Date(r.end_time).getTime() - new Date(r.start_time).getTime()) / 60000) : 0;
@@ -78,5 +92,6 @@ const s = StyleSheet.create({
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 4, paddingBottom: 12 },
   section: { paddingHorizontal: 4, paddingTop: 12, paddingBottom: 4 },
   card: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 18, borderRadius: 16, borderWidth: 1, minHeight: 64 },
+  panel: { padding: 16, borderRadius: 16, borderWidth: 1, gap: 12, marginTop: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, minHeight: 44 },
 });

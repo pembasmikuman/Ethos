@@ -3,7 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../lib/theme';
-import { applyKey, fmtClock } from '../lib/format';
+import { applyKey, fmtClock, fmtKg } from '../lib/format';
 import { doneHaptic } from '../lib/rest';
 import { useWorkout } from '../store/workout';
 import { Doto, Label } from '../components/Text';
@@ -69,6 +69,19 @@ export default function Workout() {
         </Pressable>
       </View>
 
+      {block.overload && (
+        <View style={[s.banner, { backgroundColor: t.warnBg, borderColor: t.warnLine }]}>
+          <View style={[s.dot, { backgroundColor: t.accent }]} />
+          <Label color={t.accent} style={{ flex: 1 }}>Ready to overload</Label>
+          <Doto size={18} color={t.accent}>+{fmtKg(block.exercise.increment_kg)} kg</Doto>
+        </View>
+      )}
+      {block.stalled && !block.overload && (
+        <View style={[s.banner, { backgroundColor: t.card, borderColor: t.line }]}>
+          <View style={[s.dot, { backgroundColor: t.mute }]} />
+          <Label style={{ flex: 1 }}>Stalled 3 sessions · try −10%</Label>
+        </View>
+      )}
       {w.rest && restLeft > 0 && (
         <Pressable onPress={() => router.push('/rest')} style={[s.banner, { backgroundColor: t.warnBg, borderColor: t.warnLine }]}>
           <View style={[s.dot, { backgroundColor: t.accent }]} />
@@ -102,7 +115,7 @@ export default function Workout() {
           );
         })}
         <View style={s.actions}>
-          <Pressable onPress={() => w.addSet('warmup')} hitSlop={8}><Label color={t.warm}>+ Warmup</Label></Pressable>
+          <Pressable onPress={() => w.addSet('warmup')} hitSlop={8}><Label color={t.warm}>+ Warmups</Label></Pressable>
           <Pressable onPress={() => w.addSet()} hitSlop={8}><Label>+ Set</Label></Pressable>
         </View>
       </ScrollView>

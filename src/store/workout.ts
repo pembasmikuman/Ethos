@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import type { Exercise } from '../db';
-import { finishSession, insertSet, prevSets, routineExercises, startSession, type LoggedSet, type Routine } from '../db/queries';
+import { finishSession, insertSet, recentExerciseSessions, routineExercises, startSession, type LoggedSet, type Routine } from '../db/queries';
+import { nextWeight, stalled, warmupRamp } from '../lib/progression';
 import { cancelRestDone, scheduleRestDone } from '../lib/rest';
 import { fmtKg } from '../lib/format';
 
 export type Field = 'weight' | 'reps' | 'rir';
 export type SetDraft = { type: 'warmup' | 'working'; weight: string; reps: string; rir: string; done: boolean };
-export type ExerciseBlock = { exercise: Exercise; sets: SetDraft[]; prev: LoggedSet[] };
+export type ExerciseBlock = { exercise: Exercise; sets: SetDraft[]; prev: LoggedSet[]; overload: boolean; stalled: boolean };
 
 type State = {
   sessionId: string | null;
@@ -44,9 +45,17 @@ export const useWorkout = create<State>((set, get) => ({
     const exs = await routineExercises(routine.id);
     const blocks: ExerciseBlock[] = [];
     for (const ex of exs) {
-      const prev = await prevSets(ex.id);
-      const lastWeight = prev.length ? fmtKg(prev[0].weight) : '';
-      blocks.push({ exercise: ex, prev, sets: Array.from({ length: ex.target_sets }, () => emptySet(lastWeight)) });
+      const history = await recentExerciseSessions(ex.id, 3);
+      const prev = history[0] ?? [];
+      const next = nextWeight(prev, ex);
+      const weight = next ? fmtKg(next.weight) : '';
+      blocks.push({
+        exercise: ex,
+        prev,
+        overload: next?.overload ?? false,
+        stalled: stalled(history, ex),
+        sets: Array.from({ length: ex.target_sets }, () => emptySet(weight)),
+      });
     }
     const sessionId = await startSession(routine);
     set({ sessionId, title: routine.name, startedAt: Date.now(), blocks, exIdx: 0, focus: { setIdx: 0, field: 'weight' }, rest: null });
@@ -72,7 +81,15 @@ export const useWorkout = create<State>((set, get) => ({
     const { blocks, exIdx } = get();
     const b = blocks[exIdx];
     const last = b.sets[b.sets.length - 1];
-    const sets = type === 'warmup' ? [emptySet('', 'warmup'), ...b.sets] : [...b.sets, emptySet(last?.weight ?? '')];
+    let sets: SetDraft[];
+    if (type === 'warmup') {
+      const top = parseFloat(b.sets.find((x) => x.type === 'working')?.weight ?? '');
+      const ramp = Number.isNaN(top) ? [] : warmupRamp(top);
+      const warm = ramp.length ? ramp.map((r) => ({ ...emptySet(fmtKg(r.weight), 'warmup'), reps: String(r.reps) })) : [emptySet('', 'warmup')];
+      sets = [...warm, ...b.sets.filter((x) => x.type !== 'warmup' || x.done)];
+    } else {
+      sets = [...b.sets, emptySet(last?.weight ?? '')];
+    }
     set({ blocks: blocks.map((x, i) => (i === exIdx ? { ...x, sets } : x)) });
   },
 

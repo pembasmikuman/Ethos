@@ -79,3 +79,34 @@ export async function recentSessions(limit = 3) {
     [limit],
   );
 }
+
+/** Working sets grouped by session for the last `n` sessions containing this exercise, newest first. */
+export async function recentExerciseSessions(exerciseId: string, n = 3): Promise<LoggedSet[][]> {
+  const db = await getDb();
+  const ids = await db.getAllAsync<{ session_id: string }>(
+    `SELECT session_id FROM logged_sets WHERE exercise_id = ? AND set_type = 'working'
+     GROUP BY session_id ORDER BY MAX(completed_at) DESC LIMIT ?`,
+    [exerciseId, n],
+  );
+  const out: LoggedSet[][] = [];
+  for (const { session_id } of ids) {
+    out.push(
+      await db.getAllAsync<LoggedSet>(
+        `SELECT * FROM logged_sets WHERE session_id = ? AND exercise_id = ? AND set_type = 'working' ORDER BY set_number`,
+        [session_id, exerciseId],
+      ),
+    );
+  }
+  return out;
+}
+
+/** Working sets since `sinceIso` with muscle info, for weekly volume. */
+export async function setsSince(sinceIso: string) {
+  const db = await getDb();
+  return db.getAllAsync<LoggedSet & { primary_muscle: string; secondary_muscles: string }>(
+    `SELECT l.*, e.primary_muscle, e.secondary_muscles FROM logged_sets l
+     JOIN exercises e ON e.id = l.exercise_id
+     WHERE l.completed_at >= ? AND l.set_type = 'working'`,
+    [sinceIso],
+  );
+}
