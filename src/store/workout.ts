@@ -6,7 +6,7 @@ import { cancelRestDone, scheduleRestDone } from '../lib/rest';
 import { fmtKg } from '../lib/format';
 
 export type Field = 'weight' | 'reps' | 'rir';
-export type SetDraft = { type: 'warmup' | 'working'; weight: string; reps: string; rir: string; done: boolean };
+export type SetDraft = { id: number; type: 'warmup' | 'working'; weight: string; reps: string; rir: string; done: boolean };
 export type ExerciseBlock = { exercise: Exercise; sets: SetDraft[]; prev: LoggedSet[]; overload: boolean; stalled: boolean };
 
 type State = {
@@ -47,7 +47,8 @@ async function buildBlock(ex: Exercise, targetSets: number): Promise<ExerciseBlo
   };
 }
 
-const emptySet = (weight: string, type: 'warmup' | 'working' = 'working'): SetDraft => ({ type, weight, reps: '', rir: '', done: false });
+let seq = 0;
+const emptySet = (weight: string, type: 'warmup' | 'working' = 'working'): SetDraft => ({ id: ++seq, type, weight, reps: '', rir: '', done: false });
 
 export const useWorkout = create<State>((set, get) => ({
   sessionId: null,

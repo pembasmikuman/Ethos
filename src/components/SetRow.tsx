@@ -15,7 +15,7 @@ type Props = {
   active: boolean;
   focusField: Field | null;
   onFocus: (field: Field) => void;
-  onLongPress: () => void;
+  onLongPress?: () => void;
 };
 
 export function SetRow({ index, workingNumber, set, prev, targetMax, active, focusField, onFocus, onLongPress }: Props) {

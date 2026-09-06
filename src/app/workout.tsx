@@ -4,12 +4,13 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../lib/theme';
 import { applyKey, fmtClock, fmtKg } from '../lib/format';
-import { doneHaptic } from '../lib/rest';
+import { doneHaptic, tapHaptic } from '../lib/rest';
 import { useWorkout } from '../store/workout';
 import { Doto, Label } from '../components/Text';
 import { Numpad } from '../components/Numpad';
 import { SetRow } from '../components/SetRow';
 import { DOCK_HEIGHT } from '../components/Dock';
+import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 export default function Workout() {
   const t = useTheme();
@@ -106,8 +107,17 @@ export default function Workout() {
           if (set.type === 'working') working += 1;
           const n = working;
           return (
+            <Swipeable
+              key={set.id}
+              friction={2}
+              rightThreshold={64}
+              overshootRight={false}
+              onSwipeableOpen={() => { tapHaptic(); w.removeSet(i); }}
+              renderRightActions={() => (
+                <View style={{ width: 96, alignItems: 'center', justifyContent: 'center' }}><Label color={t.accent}>Remove</Label></View>
+              )}
+            >
             <SetRow
-              key={i}
               index={i}
               workingNumber={n}
               set={set}
@@ -116,13 +126,8 @@ export default function Workout() {
               active={i === w.focus.setIdx}
               focusField={i === w.focus.setIdx ? w.focus.field : null}
               onFocus={(f) => w.setFocus(i, f)}
-              onLongPress={() =>
-                Alert.alert('Remove set?', undefined, [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Remove', style: 'destructive', onPress: () => w.removeSet(i) },
-                ])
-              }
             />
+            </Swipeable>
           );
         })}
         <View style={s.actions}>
