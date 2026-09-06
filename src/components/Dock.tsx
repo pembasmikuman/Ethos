@@ -4,7 +4,7 @@ import { BlurView } from 'expo-blur';
 import { router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, LinearTransition, runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { useTheme } from '../lib/theme';
 import { fmtClock } from '../lib/format';
@@ -17,10 +17,13 @@ const ICONS: Record<string, string> = {
   log: 'M2 10h2v4H2zM20 10h2v4h-2zM5 8h2v8H5zM17 8h2v8h-2zM7 12h10',
 };
 
-const ITEMS: { key: string; label: string; href: string }[] = [
+const ALL_ITEMS: { key: string; label: string; href: string }[] = [
   { key: 'home', label: 'Home', href: '/' },
   { key: 'log', label: 'Log', href: '/workout' },
 ];
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const AnimatedBlur = Animated.createAnimatedComponent(BlurView);
 
 const ITEM_W = 72;
 const PAD = 6;
@@ -50,11 +53,14 @@ export function Dock() {
   const startedAt = useWorkout((s) => s.startedAt);
   const [now, setNow] = useState(Date.now());
 
-  const selected = path === '/workout' || path === '/rest' ? 1 : 0;
+  const ITEMS = active ? ALL_ITEMS : ALL_ITEMS.slice(0, 1);
+  const selected = active && (path === '/workout' || path === '/rest') ? 1 : 0;
   const x = useSharedValue(selected * ITEM_W);
   const startX = useSharedValue(0);
   const dragging = useSharedValue(false);
   const maxX = (ITEMS.length - 1) * ITEM_W;
+  const maxXSv = useSharedValue(maxX);
+  useEffect(() => { maxXSv.value = maxX; }, [maxX]);
 
   useEffect(() => {
     x.value = withSpring(selected * ITEM_W, SNAP);
@@ -73,7 +79,6 @@ export function Dock() {
     else router.push('/workout');
   };
 
-  const enabled = (i: number) => i === 0 || active;
 
   const pan = Gesture.Pan()
     .activeOffsetX([-6, 6])
@@ -84,14 +89,13 @@ export function Dock() {
     .onUpdate((e) => {
       const raw = startX.value + e.translationX;
       if (raw < 0) x.value = rubberband(raw, ITEM_W);
-      else if (raw > maxX) x.value = maxX + rubberband(raw - maxX, ITEM_W);
+      else if (raw > maxXSv.value) x.value = maxXSv.value + rubberband(raw - maxXSv.value, ITEM_W);
       else x.value = raw;
     })
     .onEnd((e) => {
       dragging.value = false;
       const landing = x.value + project(e.velocityX);
-      let i = Math.round(Math.min(maxX, Math.max(0, landing)) / ITEM_W);
-      if (i === 1 && !active) i = 0;
+      const i = Math.round(Math.min(maxXSv.value, Math.max(0, landing)) / ITEM_W);
       x.value = withSpring(i * ITEM_W, { ...(Math.abs(e.velocityX) > 300 ? THROW : SNAP), velocity: e.velocityX });
       runOnJS(go)(i);
     })
@@ -111,13 +115,13 @@ export function Dock() {
   return (
     <View pointerEvents="box-none" style={[s.wrap, { bottom: insets.bottom + 10 }]}>
       <GestureDetector gesture={pan}>
-        <BlurView intensity={40} tint={scheme === 'light' ? 'light' : 'dark'} style={[s.pill, { borderColor: t.line }]}>
+        <AnimatedBlur layout={LinearTransition.springify().damping(26).stiffness(320)} intensity={40} tint={scheme === 'light' ? 'light' : 'dark'} style={[s.pill, { borderColor: t.line }]}>
           <Animated.View style={[s.highlight, { backgroundColor: glass, borderColor: t.line }, highlight]} />
           {ITEMS.map((it, i) => {
             const on = i === selected;
-            const ink = !enabled(i) ? t.dim : on ? t.accent : t.text;
+            const ink = on ? t.accent : t.text;
             return (
-              <Pressable key={it.key} disabled={!enabled(i) || on} onPress={() => go(i)} style={s.item}>
+              <AnimatedPressable key={it.key} entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)} layout={LinearTransition.springify().damping(26).stiffness(320)} disabled={on} onPress={() => go(i)} style={s.item}>
                 <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
                   <Path d={ICONS[it.key]} stroke={ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
                 </Svg>
@@ -126,10 +130,10 @@ export function Dock() {
                 ) : (
                   <Label size={9} color={ink}>{it.label}</Label>
                 )}
-              </Pressable>
+              </AnimatedPressable>
             );
           })}
-        </BlurView>
+        </AnimatedBlur>
       </GestureDetector>
     </View>
   );
