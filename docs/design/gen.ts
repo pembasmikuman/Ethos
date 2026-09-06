@@ -206,6 +206,52 @@ const home = `${head}
 </div>
 ${foot}`;
 
+// ---------- Welcome (first launch) ----------
+const E = ['1111111', '1111111', '1100000', '1111110', '1111110', '1100000', '1111111', '1111111'];
+function mark(cell: number) {
+  const w = 7 * cell, h = E.length * cell;
+  let s = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block">`;
+  E.forEach((row, y) => [...row].forEach((c, x) => {
+    s += `<circle cx="${cell * (x + 0.5)}" cy="${cell * (y + 0.5)}" r="${c === '1' ? cell * 0.36 : cell * 0.12}" fill="${c === '1' ? ACCENT : DIM}"></circle>`;
+  }));
+  return s + '</svg>';
+}
+const steps: [string, string, string][] = [
+  ['01', 'Routines hold days', 'UL · Day A, Day B. A starter PPL is already in. Edit or delete it.'],
+  ['02', 'Log without looking', 'Numpad walks kg → reps → RIR. Check completes the set, rest timer starts.'],
+  ['03', 'Progress is automatic', 'Top of the rep range on every set at RIR ≥ 1, next session pre-fills the next weight.'],
+  ['04', 'Timer works locked', 'Rest done fires as a notification and a buzz. Allow it when asked.'],
+];
+const welcome = `${head}
+<div style="width:390px;height:844px;background:${BG};display:flex;flex-direction:column;padding:56px 24px 34px;box-sizing:border-box">
+  ${mark(10)}
+  <div class="doto" style="font-size:52px;line-height:1;margin-top:22px;letter-spacing:0.02em">ETHOS</div>
+  <div class="lbl" style="margin-top:8px">Character forged through habit</div>
+
+  <div style="display:flex;flex-direction:column;gap:0;margin-top:28px">
+    ${steps.map(([n, title, body], i) => `
+    <div style="display:flex;gap:16px;padding:13px 0;border-top:1px solid ${i ? LINE : 'transparent'}">
+      <span class="doto num" style="font-size:18px;color:${ACCENT};width:28px;padding-top:2px">${n}</span>
+      <div style="flex:1;display:flex;flex-direction:column;gap:5px">
+        <span class="doto" style="font-size:17px">${title.toUpperCase()}</span>
+        <span style="font-size:12px;line-height:18px;color:${MUTE}">${body}</span>
+      </div>
+    </div>`).join('')}
+  </div>
+
+  <div style="margin-top:auto;display:flex;flex-direction:column;gap:10px">
+    <div style="height:68px;border-radius:18px;background:${ACCENT};display:flex;align-items:center;justify-content:space-between;padding:0 22px">
+      <span class="doto" style="font-size:24px;color:${BG}">START</span>
+      <span class="lbl" style="color:${BG}">Starter PPL · edit anytime</span>
+    </div>
+    <div style="border:1px dashed ${LINE};border-radius:12px;padding:16px;display:flex;align-items:center;justify-content:center">
+      <span class="lbl" style="color:${ACCENT}">Restore from a backup file</span>
+    </div>
+  </div>
+</div>
+${foot}`;
+await Bun.write(`Welcome${SFX}.dc.html`, welcome);
+
 await Bun.write(LIGHT ? 'WorkoutLight.dc.html' : 'Main.dc.html', workout);
 await Bun.write(`Timer${SFX}.dc.html`, timer);
 await Bun.write(`Home${SFX}.dc.html`, home);
@@ -217,6 +263,8 @@ await Bun.write('canvas.json', JSON.stringify({
     { file: 'HomeLight.dc.html', x: 0, y: 1000, w: 390, h: 844, title: 'Home · light' },
     { file: 'WorkoutLight.dc.html', x: 480, y: 1000, w: 390, h: 844, title: 'Active workout · light' },
     { file: 'TimerLight.dc.html', x: 960, y: 1000, w: 390, h: 844, title: 'Rest timer · light' },
+    { file: 'Welcome.dc.html', x: 1440, y: 0, w: 390, h: 844, title: 'Welcome · dark' },
+    { file: 'WelcomeLight.dc.html', x: 1440, y: 1000, w: 390, h: 844, title: 'Welcome · light' },
   ],
   launch: { view: 'canvas' },
 }, null, 2));

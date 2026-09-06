@@ -128,6 +128,7 @@ export function Dock() {
   const restLeft = rest ? Math.round((rest.endsAt - now) / 1000) : 0;
   const status = !active ? null : restLeft > 0 ? fmtClock(restLeft) : fmtClock((now - startedAt) / 1000);
 
+  if (path === '/welcome') return null;
   return (
     <Animated.View pointerEvents={hidden ? 'none' : 'box-none'} style={[s.wrap, { bottom: insets.bottom + 10 }, wrapStyle]}>
       <GestureDetector gesture={pan}>

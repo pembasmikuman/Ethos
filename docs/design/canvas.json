@@ -1,0 +1,71 @@
+{
+  "artboards": [
+    {
+      "file": "Home.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Home · dark"
+    },
+    {
+      "file": "Main.dc.html",
+      "x": 480,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Active workout · dark"
+    },
+    {
+      "file": "Timer.dc.html",
+      "x": 960,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Rest timer · dark"
+    },
+    {
+      "file": "HomeLight.dc.html",
+      "x": 0,
+      "y": 1000,
+      "w": 390,
+      "h": 844,
+      "title": "Home · light"
+    },
+    {
+      "file": "WorkoutLight.dc.html",
+      "x": 480,
+      "y": 1000,
+      "w": 390,
+      "h": 844,
+      "title": "Active workout · light"
+    },
+    {
+      "file": "TimerLight.dc.html",
+      "x": 960,
+      "y": 1000,
+      "w": 390,
+      "h": 844,
+      "title": "Rest timer · light"
+    },
+    {
+      "file": "Welcome.dc.html",
+      "x": 1440,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Welcome · dark"
+    },
+    {
+      "file": "WelcomeLight.dc.html",
+      "x": 1440,
+      "y": 1000,
+      "w": 390,
+      "h": 844,
+      "title": "Welcome · light"
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

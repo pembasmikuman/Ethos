@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { Redirect, router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { allSessions, listRoutines, recentSessions, setsSince, type Routine } from '../db/queries';
 import { daysAgo, sessionGrid, upNext, weeklyVolume, weekStart } from '../lib/progression';
@@ -31,6 +31,7 @@ export default function Home() {
   const [page, setPage] = useState(0);
   const [panelW, setPanelW] = useState(0);
   const shown = useUi((s) => s.volumeMuscles);
+  const onboarded = useUi((s) => s.onboarded);
   const toggle = useUi((s) => s.toggleVolumeMuscle);
 
   useFocusEffect(
@@ -57,6 +58,7 @@ export default function Home() {
     }
   };
 
+  if (!onboarded) return <Redirect href="/welcome" />;
   const nextId = upNext(routines)[0]?.id;
   const today = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' });
 

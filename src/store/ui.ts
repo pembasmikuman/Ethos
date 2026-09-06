@@ -11,6 +11,8 @@ type Ui = {
   /** Muscle keys shown on the Home volume panel. */
   volumeMuscles: string[];
   toggleVolumeMuscle: (key: string) => void;
+  onboarded: boolean;
+  setOnboarded: () => void;
 };
 
 const DEFAULT_MUSCLES = ['chest', 'back', 'quads', 'hamstrings', 'delts', 'biceps', 'triceps'];
@@ -29,6 +31,8 @@ export const useUi = create<Ui>((set) => ({
     Storage.setItemSync(KEY, appearance);
     set({ appearance });
   },
+  onboarded: Storage.getItemSync('onboarded') === '1',
+  setOnboarded: () => { Storage.setItemSync('onboarded', '1'); set({ onboarded: true }); },
   volumeMuscles: initialMuscles,
   toggleVolumeMuscle: (key) =>
     set((st) => {
