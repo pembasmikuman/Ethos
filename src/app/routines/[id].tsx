@@ -15,13 +15,16 @@ export default function RoutineEditor() {
   const insets = useSafeAreaInsets();
   const top = useTopInset();
   const [name, setName] = useState('');
+  const [plan, setPlan] = useState('');
   const [rows, setRows] = useState<RoutineExercise[]>([]);
   const [dragging, setDragging] = useState(false);
   const drag = useDragList();
 
   const load = async () => {
     setRows(await routineExerciseRows(id));
-    setName((await listRoutines()).find((r) => r.id === id)?.name ?? '');
+    const r = (await listRoutines()).find((x) => x.id === id);
+    setName(r?.name ?? '');
+    setPlan(r?.plan ?? '');
   };
   useFocusEffect(useCallback(() => { load(); }, [id]));
 
@@ -62,10 +65,22 @@ export default function RoutineEditor() {
       <TextInput
         value={name}
         onChangeText={setName}
-        onEndEditing={() => renameRoutine(id, name.trim() || 'Untitled')}
+        onEndEditing={() => renameRoutine(id, name.trim() || 'Untitled', plan.trim())}
         selectTextOnFocus
         returnKeyType="done"
         style={[s.name, { color: t.text, borderBottomColor: t.line }]}
+      />
+
+      <Label style={s.section}>Plan · optional</Label>
+      <TextInput
+        value={plan}
+        onChangeText={setPlan}
+        onEndEditing={() => renameRoutine(id, name.trim() || 'Untitled', plan.trim())}
+        placeholder="e.g. UL, PPL"
+        placeholderTextColor={t.dim}
+        autoCapitalize="characters"
+        returnKeyType="done"
+        style={[s.plan, { color: t.text, borderBottomColor: t.line }]}
       />
 
       <Label style={s.section}>Exercises</Label>
@@ -99,6 +114,7 @@ const s = StyleSheet.create({
   page: { paddingHorizontal: 16 },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 4, paddingBottom: 12 },
   section: { paddingHorizontal: 4, paddingTop: 18, paddingBottom: 8 },
+  plan: { fontFamily: fonts.mono, fontSize: 16, paddingVertical: 8, paddingHorizontal: 4, borderBottomWidth: 1 },
   name: { fontFamily: fonts.doto, fontSize: 32, paddingVertical: 8, paddingHorizontal: 4, borderBottomWidth: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 4, borderBottomWidth: 1, height: ROW_H },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 6 },

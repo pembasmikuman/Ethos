@@ -4,7 +4,7 @@ import { getDb, type Exercise } from './index';
 /** Exercise columns with brand folded into name for display. Use exerciseById for the raw parts. */
 const EX = (a: string) => `${a}.id, ${a}.name AS base, CASE WHEN ${a}.brand <> '' THEN ${a}.name || ' · ' || ${a}.brand ELSE ${a}.name END AS name, ${a}.brand, ${a}.movement, ${a}.primary_muscle, ${a}.secondary_muscles, ${a}.equipment, ${a}.default_rest_seconds, ${a}.target_rep_min, ${a}.target_rep_max, ${a}.increment_kg`;
 
-export type Routine = { id: string; name: string; exercises: number; last_done: string | null };
+export type Routine = { id: string; name: string; plan: string; plan_order: number; exercises: number; last_done: string | null };
 export type LoggedSet = {
   id: string;
   session_id: string;
@@ -19,10 +19,10 @@ export type LoggedSet = {
 
 export async function listRoutines(): Promise<Routine[]> {
   const db = await getDb();
-  return db.getAllAsync<Routine>(`SELECT r.id, r.name,
+  return db.getAllAsync<Routine>(`SELECT r.id, r.name, r.plan, r.plan_order,
        (SELECT COUNT(*) FROM routine_exercises re WHERE re.routine_id = r.id) AS exercises,
        (SELECT MAX(end_time) FROM workout_sessions ws WHERE ws.routine_id = r.id AND ws.end_time IS NOT NULL) AS last_done
-     FROM routines r ORDER BY r.name`);
+     FROM routines r ORDER BY r.plan, r.plan_order, r.name`);
 }
 
 export async function routineExercises(routineId: string): Promise<(Exercise & { target_sets: number })[]> {
@@ -181,9 +181,9 @@ export async function createRoutine(name: string): Promise<string> {
   return id;
 }
 
-export async function renameRoutine(id: string, name: string): Promise<void> {
+export async function renameRoutine(id: string, name: string, plan: string): Promise<void> {
   const db = await getDb();
-  await db.runAsync('UPDATE routines SET name = ? WHERE id = ?', [name, id]);
+  await db.runAsync('UPDATE routines SET name = ?, plan = ? WHERE id = ?', [name, plan, id]);
 }
 
 export async function deleteRoutine(id: string): Promise<void> {

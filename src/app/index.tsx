@@ -35,7 +35,7 @@ export default function Home() {
 
   useFocusEffect(
     useCallback(() => {
-      listRoutines().then((r) => setRoutines(upNext(r)));
+      listRoutines().then(setRoutines);
       recentSessions().then(setRecent);
       setsSince(weekStart()).then((rows) => setVolume(weeklyVolume(rows)));
       allSessions().then((rows) => setGrid(sessionGrid(rows.map((r) => r.start_time))));
@@ -57,6 +57,7 @@ export default function Home() {
     }
   };
 
+  const nextId = upNext(routines)[0]?.id;
   const today = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' });
 
   return (
@@ -136,10 +137,12 @@ export default function Home() {
       {routines.length === 0 && <Label color={t.dim} style={{ paddingHorizontal: 4 }}>No routines. Tap Edit to build one.</Label>}
       {routines.map((r, i) => {
         const ago = daysAgo(r.last_done);
-        const next = i === 0;
+        const next = r.id === nextId;
+        const planHead = r.plan && (i === 0 || routines[i - 1].plan !== r.plan);
         return (
+          <View key={r.id} style={{ gap: 8 }}>
+          {planHead && <Label color={t.accent} style={{ paddingHorizontal: 4, paddingTop: 6 }}>{r.plan}</Label>}
           <Pressable
-            key={r.id}
             onPress={() => go(r)}
             style={({ pressed }) => [s.card, { backgroundColor: t.card, borderColor: next ? t.accent : t.line, opacity: pressed ? 0.85 : 1 }]}
           >
@@ -149,6 +152,7 @@ export default function Home() {
             </View>
             <Label color={t.accent}>{active ? 'Resume' : 'Preview'}</Label>
           </Pressable>
+          </View>
         );
       })}
 

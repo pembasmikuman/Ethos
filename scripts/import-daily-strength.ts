@@ -63,19 +63,23 @@ for (const s of sessions) for (const se of s.workoutSessionExercises) {
   for (const st of se.workoutSessionSets) if (st.restTime) u.rests.push(st.restTime);
 }
 
-// Routines: latest workout per name among those the sessions used.
-const usedWorkoutIds = new Set(sessions.map((s) => s.workout?.id).filter(Boolean) as string[]);
+// Routines: workouts inside the user's own plans (Schedule.custom), plus any other workout the sessions used.
+type DsSchedule = { name: string; custom: boolean; workouts: DsWorkout[] };
+const plans = (load('Schedule') as DsSchedule[]).filter((p) => p.custom);
+const planOf = new Map<string, { plan: string; order: number }>();
 const byName = new Map<string, DsWorkout>();
+for (const p of plans) p.workouts.forEach((w, i) => { byName.set(w.name, w); planOf.set(w.name, { plan: p.name, order: i }); });
+const usedWorkoutIds = new Set(sessions.map((s) => s.workout?.id).filter(Boolean) as string[]);
 for (const w of workouts) {
-  if (!usedWorkoutIds.has(w.id)) continue;
-  const cur = byName.get(w.name);
-  if (!cur || (w.modifiedDate ?? 0) > (cur.modifiedDate ?? 0)) byName.set(w.name, w);
+  if (!usedWorkoutIds.has(w.id) || byName.has(w.name)) continue;
+  byName.set(w.name, w);
 }
 const routines: Record<string, unknown>[] = [];
 const routine_exercises: Record<string, unknown>[] = [];
 for (const w of byName.values()) {
   const rid = randomUUID();
-  routines.push({ id: rid, name: w.name, notes: null, created_at: iso(w.modifiedDate ?? Date.now()) });
+  const p = planOf.get(w.name);
+  routines.push({ id: rid, name: w.name, plan: p?.plan ?? '', plan_order: p?.order ?? 0, notes: null, created_at: iso(w.modifiedDate ?? Date.now()) });
   [...w.exerciseList].sort((a, b) => a.position - b.position).forEach((we, i) => {
     const u = touch(we.exercise);
     for (const st of we.workoutExerciseSets) {

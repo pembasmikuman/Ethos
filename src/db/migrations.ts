@@ -66,6 +66,11 @@ const MIGRATIONS: string[] = [
   UPDATE exercises SET movement = 'Triceps Extension' WHERE id IN ('pushdown', 'overhead-ext', 'skullcrusher') AND movement = '';
   UPDATE exercises SET movement = 'Calf Raise' WHERE id IN ('calf-raise', 'seated-calf') AND movement = '';
   `,
+  // Plan (program) grouping for routines, e.g. "UL" holds Day A / Day B / FB.
+  `
+  ALTER TABLE routines ADD COLUMN plan TEXT NOT NULL DEFAULT '';
+  ALTER TABLE routines ADD COLUMN plan_order INTEGER NOT NULL DEFAULT 0;
+  `,
 ];
 
 export async function migrate(db: SQLiteDatabase): Promise<void> {
