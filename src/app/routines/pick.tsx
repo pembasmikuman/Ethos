@@ -12,7 +12,7 @@ import { useWorkout } from '../../store/workout';
 export default function PickExercise() {
   const { routine, replace, session } = useLocalSearchParams<{ routine?: string; replace?: string; session?: 'add' | 'swap' }>();
   const addToSession = useWorkout((s) => s.addExercise);
-  const inSession = useWorkout((s) => s.blocks.map((b) => b.exercise.id));
+  const blocks = useWorkout((s) => s.blocks);
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const [all, setAll] = useState<Exercise[]>([]);
@@ -22,7 +22,7 @@ export default function PickExercise() {
   useEffect(() => {
     allExercises().then(setAll);
     if (routine) routineExerciseRows(routine).then((rows) => setHave(new Set(rows.map((r) => r.id))));
-    else setHave(new Set(inSession));
+    else setHave(new Set(blocks.map((b) => b.exercise.id)));
   }, [routine]);
 
   const pick = async (e: Exercise) => {
