@@ -1,7 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import { getDb, type Exercise } from './index';
 
-export type Routine = { id: string; name: string };
+export type Routine = { id: string; name: string; exercises: number };
 export type LoggedSet = {
   id: string;
   session_id: string;
@@ -16,7 +16,7 @@ export type LoggedSet = {
 
 export async function listRoutines(): Promise<Routine[]> {
   const db = await getDb();
-  return db.getAllAsync<Routine>('SELECT id, name FROM routines ORDER BY name');
+  return db.getAllAsync<Routine>('SELECT r.id, r.name, (SELECT COUNT(*) FROM routine_exercises re WHERE re.routine_id = r.id) AS exercises FROM routines r ORDER BY r.name');
 }
 
 export async function routineExercises(routineId: string): Promise<(Exercise & { target_sets: number })[]> {
@@ -159,4 +159,68 @@ export async function updateSet(id: string, weight: number, reps: number, rir: n
 export async function deleteSet(id: string): Promise<void> {
   const db = await getDb();
   await db.runAsync('DELETE FROM logged_sets WHERE id = ?', [id]);
+}
+
+// ---- Routine editing ----
+
+export async function allExercises(): Promise<Exercise[]> {
+  const db = await getDb();
+  return db.getAllAsync<Exercise>('SELECT * FROM exercises ORDER BY primary_muscle, name');
+}
+
+export async function createRoutine(name: string): Promise<string> {
+  const db = await getDb();
+  const id = Crypto.randomUUID();
+  await db.runAsync('INSERT INTO routines (id, name) VALUES (?, ?)', [id, name]);
+  return id;
+}
+
+export async function renameRoutine(id: string, name: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('UPDATE routines SET name = ? WHERE id = ?', [name, id]);
+}
+
+export async function deleteRoutine(id: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('DELETE FROM routine_exercises WHERE routine_id = ?', [id]);
+  await db.runAsync('UPDATE workout_sessions SET routine_id = NULL WHERE routine_id = ?', [id]);
+  await db.runAsync('DELETE FROM routines WHERE id = ?', [id]);
+}
+
+export type RoutineExercise = Exercise & { re_id: string; order_index: number; target_sets: number };
+
+export async function routineExerciseRows(routineId: string): Promise<RoutineExercise[]> {
+  const db = await getDb();
+  return db.getAllAsync<RoutineExercise>(
+    `SELECT e.*, re.id AS re_id, re.order_index, re.target_sets FROM routine_exercises re
+     JOIN exercises e ON e.id = re.exercise_id WHERE re.routine_id = ? ORDER BY re.order_index`,
+    [routineId],
+  );
+}
+
+export async function addRoutineExercise(routineId: string, exerciseId: string): Promise<void> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ n: number }>('SELECT COALESCE(MAX(order_index), -1) + 1 AS n FROM routine_exercises WHERE routine_id = ?', [routineId]);
+  await db.runAsync(
+    'INSERT INTO routine_exercises (id, routine_id, exercise_id, order_index, target_sets) VALUES (?, ?, ?, ?, 3)',
+    [Crypto.randomUUID(), routineId, exerciseId, row?.n ?? 0],
+  );
+}
+
+export async function removeRoutineExercise(reId: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('DELETE FROM routine_exercises WHERE id = ?', [reId]);
+}
+
+export async function setTargetSets(reId: string, n: number): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('UPDATE routine_exercises SET target_sets = ? WHERE id = ?', [Math.max(1, Math.min(10, n)), reId]);
+}
+
+/** Rewrite order_index for the given ordered list of routine_exercises ids. */
+export async function reorderRoutine(reIds: string[]): Promise<void> {
+  const db = await getDb();
+  await db.withTransactionAsync(async () => {
+    for (let i = 0; i < reIds.length; i++) await db.runAsync('UPDATE routine_exercises SET order_index = ? WHERE id = ?', [i, reIds[i]]);
+  });
 }

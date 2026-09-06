@@ -56,7 +56,10 @@ export default function Home() {
         <Label>{today}</Label>
       </View>
 
-      <Label style={s.section}>Routines</Label>
+      <View style={[s.section, { flexDirection: 'row', justifyContent: 'space-between' }]}>
+        <Label>Routines</Label>
+        <Pressable onPress={() => router.push('/routines')} hitSlop={12}><Label color={t.accent}>Edit</Label></Pressable>
+      </View>
       {routines.map((r) => (
         <Pressable
           key={r.id}
