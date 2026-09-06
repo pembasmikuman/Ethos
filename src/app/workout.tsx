@@ -31,11 +31,22 @@ export default function Workout() {
     if ((k === '+' || k === '-' || k === '.') && w.focus.field !== 'weight') return;
     w.input(applyKey(focusedSet[w.focus.field], k, max));
   };
+  const nextField = (): 'reps' | 'rir' | null => {
+    if (w.focus.field === 'weight') return 'reps';
+    if (w.focus.field === 'reps' && focusedSet?.type === 'working') return 'rir';
+    return null;
+  };
   const onDone = async () => {
+    const nf = nextField();
+    if (nf) {
+      w.setFocus(w.focus.setIdx, nf);
+      return;
+    }
     await w.completeSet();
     doneHaptic();
     if (useWorkout.getState().rest) router.push('/rest');
   };
+  const doneLabel = nextField() ? `Next · ${nextField()}` : 'Done · Start rest';
   const onFinish = () =>
     Alert.alert('Finish workout?', undefined, [
       { text: 'Keep going', style: 'cancel' },
@@ -108,7 +119,7 @@ export default function Workout() {
         </Pressable>
       </View>
 
-      <Numpad onKey={onKey} onDone={onDone} />
+      <Numpad onKey={onKey} onDone={onDone} doneLabel={doneLabel} />
     </View>
   );
 }
