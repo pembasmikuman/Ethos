@@ -1,6 +1,9 @@
 import * as Crypto from 'expo-crypto';
 import { getDb, type Exercise } from './index';
 
+/** Exercise columns with brand folded into name for display. Use exerciseById for the raw parts. */
+const EX = (a: string) => `${a}.id, CASE WHEN ${a}.brand <> '' THEN ${a}.name || ' · ' || ${a}.brand ELSE ${a}.name END AS name, ${a}.brand, ${a}.primary_muscle, ${a}.secondary_muscles, ${a}.equipment, ${a}.default_rest_seconds, ${a}.target_rep_min, ${a}.target_rep_max, ${a}.increment_kg`;
+
 export type Routine = { id: string; name: string; exercises: number; last_done: string | null };
 export type LoggedSet = {
   id: string;
@@ -25,7 +28,7 @@ export async function listRoutines(): Promise<Routine[]> {
 export async function routineExercises(routineId: string): Promise<(Exercise & { target_sets: number })[]> {
   const db = await getDb();
   return db.getAllAsync(
-    `SELECT e.*, re.target_sets FROM routine_exercises re
+    `SELECT ${EX('e')}, re.target_sets FROM routine_exercises re
      JOIN exercises e ON e.id = re.exercise_id
      WHERE re.routine_id = ? ORDER BY re.order_index`,
     [routineId],
@@ -148,7 +151,7 @@ export async function sessionById(id: string): Promise<SessionRow | null> {
 export async function sessionSets(sessionId: string) {
   const db = await getDb();
   return db.getAllAsync<LoggedSet & { name: string; target_rep_max: number }>(
-    `SELECT l.*, e.name, e.target_rep_max FROM logged_sets l JOIN exercises e ON e.id = l.exercise_id
+    `SELECT l.*, CASE WHEN e.brand <> '' THEN e.name || ' · ' || e.brand ELSE e.name END AS name, e.target_rep_max FROM logged_sets l JOIN exercises e ON e.id = l.exercise_id
      WHERE l.session_id = ? ORDER BY l.completed_at`,
     [sessionId],
   );
@@ -168,7 +171,7 @@ export async function deleteSet(id: string): Promise<void> {
 
 export async function allExercises(): Promise<Exercise[]> {
   const db = await getDb();
-  return db.getAllAsync<Exercise>('SELECT * FROM exercises ORDER BY primary_muscle, name');
+  return db.getAllAsync<Exercise>(`SELECT ${EX('e')} FROM exercises e ORDER BY e.primary_muscle, name`);
 }
 
 export async function createRoutine(name: string): Promise<string> {
@@ -195,7 +198,7 @@ export type RoutineExercise = Exercise & { re_id: string; order_index: number; t
 export async function routineExerciseRows(routineId: string): Promise<RoutineExercise[]> {
   const db = await getDb();
   return db.getAllAsync<RoutineExercise>(
-    `SELECT e.*, re.id AS re_id, re.order_index, re.target_sets FROM routine_exercises re
+    `SELECT ${EX('e')}, re.id AS re_id, re.order_index, re.target_sets FROM routine_exercises re
      JOIN exercises e ON e.id = re.exercise_id WHERE re.routine_id = ? ORDER BY re.order_index`,
     [routineId],
   );
@@ -250,11 +253,23 @@ export async function updateExercise(id: string, s: ExerciseSettings): Promise<v
   );
 }
 
-export async function createExercise(name: string, primary: string, equipment: string): Promise<string> {
+export async function createExercise(name: string, brand: string, primary: string, equipment: string): Promise<string> {
   const db = await getDb();
   const id = Crypto.randomUUID();
-  await db.runAsync('INSERT INTO exercises (id, name, primary_muscle, equipment) VALUES (?, ?, ?, ?)', [id, name, primary, equipment]);
+  await db.runAsync('INSERT INTO exercises (id, name, brand, primary_muscle, equipment) VALUES (?, ?, ?, ?, ?)', [id, name, brand, primary, equipment]);
   return id;
+}
+
+/** Copy an exercise (settings included) as a new variant. Returns the new id. */
+export async function duplicateExercise(id: string): Promise<string> {
+  const db = await getDb();
+  const nid = Crypto.randomUUID();
+  await db.runAsync(
+    `INSERT INTO exercises (id, name, brand, primary_muscle, secondary_muscles, equipment, default_rest_seconds, target_rep_min, target_rep_max, increment_kg)
+     SELECT ?, name, brand, primary_muscle, secondary_muscles, equipment, default_rest_seconds, target_rep_min, target_rep_max, increment_kg FROM exercises WHERE id = ?`,
+    [nid, id],
+  );
+  return nid;
 }
 
 /** Working sets for one exercise grouped per session, newest first, with session date. */
@@ -277,9 +292,9 @@ export async function exerciseHistory(exerciseId: string, n = 12): Promise<{ ses
   return out;
 }
 
-export async function renameExercise(id: string, name: string, primary: string, equipment: string): Promise<void> {
+export async function renameExercise(id: string, name: string, brand: string, primary: string, equipment: string): Promise<void> {
   const db = await getDb();
-  await db.runAsync('UPDATE exercises SET name = ?, primary_muscle = ?, equipment = ? WHERE id = ?', [name, primary, equipment, id]);
+  await db.runAsync('UPDATE exercises SET name = ?, brand = ?, primary_muscle = ?, equipment = ? WHERE id = ?', [name, brand, primary, equipment, id]);
 }
 
 /** Refuses if the exercise has logged sets. Returns false in that case. */

@@ -49,6 +49,8 @@ const MIGRATIONS: string[] = [
   );
   CREATE INDEX idx_sets_exercise ON logged_sets(exercise_id, completed_at);
   `,
+  // Machine brand / variant. Shown as "Name · Brand"; same movement on two machines = two exercises.
+  `ALTER TABLE exercises ADD COLUMN brand TEXT NOT NULL DEFAULT '';`,
 ];
 
 export async function migrate(db: SQLiteDatabase): Promise<void> {

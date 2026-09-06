@@ -12,3 +12,11 @@ test('migrations apply cleanly on a fresh db', () => {
   const tables = db.query("SELECT name FROM sqlite_master WHERE type='table'").all().map((r: any) => r.name);
   expect(tables).toEqual(expect.arrayContaining(['exercises', 'routines', 'routine_exercises', 'workout_sessions', 'logged_sets']));
 });
+
+test('brand folds into display name', () => {
+  const db = new Database(':memory:');
+  for (const sql of sqls) db.exec(sql);
+  db.exec("INSERT INTO exercises (id, name, brand, primary_muscle) VALUES ('a', 'Chest Press', 'Technogym', 'chest'), ('b', 'Chest Press', '', 'chest')");
+  const rows = db.query("SELECT CASE WHEN brand <> '' THEN name || ' · ' || brand ELSE name END AS name FROM exercises ORDER BY id").all() as { name: string }[];
+  expect(rows.map((r) => r.name)).toEqual(['Chest Press · Technogym', 'Chest Press']);
+});

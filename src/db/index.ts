@@ -21,6 +21,7 @@ export function getDb(): Promise<SQLiteDatabase> {
 export type Exercise = {
   id: string;
   name: string;
+  brand: string;
   primary_muscle: string;
   secondary_muscles: string;
   equipment: string | null;

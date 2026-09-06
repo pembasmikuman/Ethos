@@ -3,7 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Exercise } from '../../db';
-import { deleteExercise, exerciseById, exerciseHistory, updateExercise, type ExerciseSettings } from '../../db/queries';
+import { deleteExercise, duplicateExercise, exerciseById, exerciseHistory, updateExercise, type ExerciseSettings } from '../../db/queries';
 import { epley1RM } from '../../lib/progression';
 import { fmtKg } from '../../lib/format';
 import { tapHaptic } from '../../lib/rest';
@@ -50,7 +50,8 @@ export default function ExerciseDetail() {
   const onMenu = () =>
     Alert.alert(ex.name, undefined, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Edit name · muscle · equipment', onPress: () => router.push(`/exercise/new?edit=${id}`) },
+      { text: 'Edit name · brand · muscle', onPress: () => router.push(`/exercise/new?edit=${id}`) },
+      { text: 'Duplicate as variant', onPress: async () => { const nid = await duplicateExercise(id); router.push(`/exercise/new?edit=${nid}`); } },
       {
         text: 'Delete',
         style: 'destructive',
@@ -70,6 +71,7 @@ export default function ExerciseDetail() {
         <Pressable onPress={onMenu} hitSlop={12}><Label color={t.accent}>Edit</Label></Pressable>
       </View>
       <Doto size={32}>{ex.name.toUpperCase()}</Doto>
+      {ex.brand !== '' && <Label color={t.accent} style={{ paddingTop: 4 }}>{ex.brand}</Label>}
       <Label style={{ paddingTop: 4 }}>{ex.primary_muscle}{ex.secondary_muscles ? ` · ${ex.secondary_muscles}` : ''} · {ex.equipment}</Label>
 
       <View style={[s.panel, { backgroundColor: t.card, borderColor: t.line }]}>
