@@ -229,3 +229,47 @@ export async function replaceRoutineExercise(reId: string, exerciseId: string): 
   const db = await getDb();
   await db.runAsync('UPDATE routine_exercises SET exercise_id = ? WHERE id = ?', [exerciseId, reId]);
 }
+
+// ---- Exercise detail ----
+
+export async function exerciseById(id: string): Promise<Exercise | null> {
+  const db = await getDb();
+  return db.getFirstAsync<Exercise>('SELECT * FROM exercises WHERE id = ?', [id]);
+}
+
+export type ExerciseSettings = Pick<Exercise, 'default_rest_seconds' | 'target_rep_min' | 'target_rep_max' | 'increment_kg'>;
+
+export async function updateExercise(id: string, s: ExerciseSettings): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE exercises SET default_rest_seconds = ?, target_rep_min = ?, target_rep_max = ?, increment_kg = ? WHERE id = ?',
+    [s.default_rest_seconds, s.target_rep_min, s.target_rep_max, s.increment_kg, id],
+  );
+}
+
+export async function createExercise(name: string, primary: string, equipment: string): Promise<string> {
+  const db = await getDb();
+  const id = Crypto.randomUUID();
+  await db.runAsync('INSERT INTO exercises (id, name, primary_muscle, equipment) VALUES (?, ?, ?, ?)', [id, name, primary, equipment]);
+  return id;
+}
+
+/** Working sets for one exercise grouped per session, newest first, with session date. */
+export async function exerciseHistory(exerciseId: string, n = 12): Promise<{ session_id: string; date: string; sets: LoggedSet[] }[]> {
+  const db = await getDb();
+  const heads = await db.getAllAsync<{ session_id: string; date: string }>(
+    `SELECT s.session_id, ws.start_time AS date FROM logged_sets s JOIN workout_sessions ws ON ws.id = s.session_id
+     WHERE s.exercise_id = ? AND s.set_type = 'working' AND ws.end_time IS NOT NULL
+     GROUP BY s.session_id ORDER BY ws.start_time DESC LIMIT ?`,
+    [exerciseId, n],
+  );
+  const out = [];
+  for (const h of heads) {
+    const sets = await db.getAllAsync<LoggedSet>(
+      `SELECT * FROM logged_sets WHERE session_id = ? AND exercise_id = ? AND set_type = 'working' ORDER BY set_number`,
+      [h.session_id, exerciseId],
+    );
+    out.push({ ...h, sets });
+  }
+  return out;
+}

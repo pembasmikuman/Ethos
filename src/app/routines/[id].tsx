@@ -110,7 +110,7 @@ export default function RoutineEditor() {
       {rows.length === 0 && <Label color={t.dim} style={{ paddingHorizontal: 4 }}>Empty. Add one below.</Label>}
       {rows.map((r, i) => (
         <DragRow key={r.re_id} index={i} count={rows.length} active={active} dy={dy} onDrop={drop} onGrab={grab}>
-        <Pressable onLongPress={() => confirmRemove(r)} style={[s.row, { borderBottomColor: t.line, backgroundColor: t.bg }]}>
+        <Pressable onPress={() => router.push(`/exercise/${r.id}`)} onLongPress={() => confirmRemove(r)} style={[s.row, { borderBottomColor: t.line, backgroundColor: t.bg }]}>
           <View style={{ flex: 1, gap: 4 }}>
             <Doto size={20}>{r.name.toUpperCase()}</Doto>
             <Label color={t.dim}>{r.primary_muscle} · {r.target_rep_min}–{r.target_rep_max} reps</Label>
@@ -124,7 +124,7 @@ export default function RoutineEditor() {
         </Pressable>
         </DragRow>
       ))}
-      <Label color={t.dim} style={{ paddingHorizontal: 4, paddingTop: 8 }}>Drag ≡ to reorder · hold name to replace or remove</Label>
+      <Label color={t.dim} style={{ paddingHorizontal: 4, paddingTop: 8 }}>Tap for detail · drag ≡ · hold to replace or remove</Label>
 
       <Pressable onPress={() => router.push(`/routines/pick?routine=${id}`)} style={({ pressed }) => [s.add, { borderColor: t.line, opacity: pressed ? 0.7 : 1 }]}>
         <Label color={t.accent}>+ Add exercise</Label>

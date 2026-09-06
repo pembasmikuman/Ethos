@@ -51,6 +51,9 @@ export default function PickExercise() {
           </View>
         );
       })}
+      <Pressable onPress={() => router.push(`/exercise/new?routine=${routine}`)} style={({ pressed }) => [s.add, { borderColor: t.line, opacity: pressed ? 0.7 : 1 }]}>
+        <Label color={t.accent}>+ New exercise</Label>
+      </Pressable>
     </ScrollView>
   );
 }
@@ -60,5 +63,6 @@ const s = StyleSheet.create({
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 4, paddingBottom: 12 },
   search: { fontFamily: fonts.mono, fontSize: 14, padding: 12, borderWidth: 1, borderRadius: 10 },
   section: { paddingHorizontal: 4, paddingTop: 18, paddingBottom: 4 },
+  add: { marginTop: 16, borderWidth: 1, borderStyle: 'dashed', borderRadius: 12, padding: 18, alignItems: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, minHeight: 52 },
 });
