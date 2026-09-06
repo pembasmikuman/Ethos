@@ -321,3 +321,10 @@ export async function deleteExercise(id: string): Promise<boolean> {
   await db.runAsync('DELETE FROM exercises WHERE id = ?', [id]);
   return true;
 }
+
+export async function reorderPlan(routineIds: string[]): Promise<void> {
+  const db = await getDb();
+  await db.withTransactionAsync(async () => {
+    for (let i = 0; i < routineIds.length; i++) await db.runAsync('UPDATE routines SET plan_order = ? WHERE id = ?', [i, routineIds[i]]);
+  });
+}
