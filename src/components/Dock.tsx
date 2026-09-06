@@ -15,11 +15,13 @@ import { Doto, Label } from './Text';
 const ICONS: Record<string, string> = {
   home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
   log: 'M2 10h2v4H2zM20 10h2v4h-2zM5 8h2v8H5zM17 8h2v8h-2zM7 12h10',
+  settings: 'M4 6h16M4 12h16M4 18h16M9 4v4M15 10v4M7 16v4',
 };
 
 const ALL_ITEMS: { key: string; label: string; href: string }[] = [
   { key: 'home', label: 'Home', href: '/' },
   { key: 'log', label: 'Log', href: '/workout' },
+  { key: 'settings', label: 'Settings', href: '/settings' },
 ];
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -53,8 +55,8 @@ export function Dock() {
   const startedAt = useWorkout((s) => s.startedAt);
   const [now, setNow] = useState(Date.now());
 
-  const ITEMS = active ? ALL_ITEMS : ALL_ITEMS.slice(0, 1);
-  const selected = active && (path === '/workout' || path === '/rest') ? 1 : 0;
+  const ITEMS = active ? ALL_ITEMS : ALL_ITEMS.filter((i) => i.key !== 'log');
+  const selected = Math.max(0, ITEMS.findIndex((i) => i.href === path || (i.href === '/workout' && path === '/rest')));
   const x = useSharedValue(selected * ITEM_W);
   const startX = useSharedValue(0);
   const dragging = useSharedValue(false);
@@ -75,8 +77,9 @@ export function Dock() {
   const go = (i: number) => {
     if (i === selected) return;
     tapHaptic();
-    if (i === 0) router.dismissTo('/');
-    else router.push('/workout');
+    const href = ITEMS[i].href;
+    if (href === '/') router.dismissTo('/');
+    else router.navigate(href as never);
   };
 
 
