@@ -41,7 +41,7 @@ export default function Exercises() {
     <ScrollView style={{ backgroundColor: t.bg }} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
       <View style={s.head}>
         <Doto size={40}>MOVES</Doto>
-        <Label>{list.length} of {all.length}</Label>
+        <Pressable onPress={() => router.push('/exercise/new')} hitSlop={12} style={[s.newBtn, { backgroundColor: t.accent }]}><Label color={t.bg}>+ New</Label></Pressable>
       </View>
       <TextInput value={q} onChangeText={setQ} placeholder="search" placeholderTextColor={t.dim} autoCorrect={false} style={[s.search, { color: t.text, borderColor: t.line, backgroundColor: t.card }]} />
       {chips(MUSCLES, muscle, setMuscle)}
@@ -68,6 +68,7 @@ export default function Exercises() {
 const s = StyleSheet.create({
   page: { paddingHorizontal: 16 },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 4, paddingBottom: 12 },
+  newBtn: { borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, marginBottom: 4 },
   search: { fontFamily: fonts.mono, fontSize: 14, padding: 12, borderWidth: 1, borderRadius: 10 },
   chips: { flexDirection: 'row', gap: 8, paddingTop: 10, paddingHorizontal: 2 },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },

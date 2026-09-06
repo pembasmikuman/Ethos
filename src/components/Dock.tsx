@@ -18,14 +18,13 @@ const ICONS: Record<string, string> = {
   log: 'M2 10h2v4H2zM20 10h2v4h-2zM5 8h2v8H5zM17 8h2v8h-2zM7 12h10',
   history: 'M12 8v4l3 2M21 12a9 9 0 1 1-3-6.7M21 4v4h-4',
   exercises: 'M4 5h16M4 12h10M4 19h13M18 10l3 2-3 2',
-  new: 'M12 5v14M5 12h14',
   settings: 'M4 6h16M4 12h16M4 18h16M9 4v4M15 10v4M7 16v4',
 };
 
 const ALL_ITEMS: { key: string; label: string; href: string }[] = [
   { key: 'home', label: 'Home', href: '/' },
-  { key: 'log', label: 'Log', href: '/session' },
   { key: 'history', label: 'History', href: '/history' },
+  { key: 'log', label: 'Log', href: '/session' },
   { key: 'exercises', label: 'Moves', href: '/exercises' },
   { key: 'settings', label: 'Settings', href: '/settings' },
 ];
@@ -62,10 +61,7 @@ export function Dock() {
   const hidden = useUi((s) => s.dockHidden);
   const [now, setNow] = useState(Date.now());
 
-  const NAV = active ? ALL_ITEMS : ALL_ITEMS.filter((i) => i.key !== 'log');
-  // Contextual action in the middle of the pill: "+" on Moves.
-  const action = path === '/exercises' ? { key: 'new', label: 'New', href: '/exercise/new' } : null;
-  const ITEMS = action ? [...NAV.slice(0, Math.ceil(NAV.length / 2)), action, ...NAV.slice(Math.ceil(NAV.length / 2))] : NAV;
+  const ITEMS = active ? ALL_ITEMS : ALL_ITEMS.filter((i) => i.key !== 'log');
   const selected = Math.max(0, ITEMS.findIndex((i) => i.href === path || (i.href === '/session' && (path === '/workout' || path === '/rest')) || (i.href === '/history' && path.startsWith('/history')) || (i.href === '/exercises' && path.startsWith('/exercise'))));
   const x = useSharedValue(selected * ITEM_W);
   const startX = useSharedValue(0);
@@ -88,11 +84,6 @@ export function Dock() {
     if (i === selected) return;
     tapHaptic();
     const href = ITEMS[i].href;
-    if (ITEMS[i].key === 'new') {
-      x.value = withSpring(selected * ITEM_W, SNAP);
-      router.push(href as never);
-      return;
-    }
     if (href === '/') router.dismissTo('/');
     else router.navigate(href as never);
   };
@@ -142,7 +133,7 @@ export function Dock() {
           <Animated.View style={[s.highlight, { backgroundColor: glass, borderColor: t.line }, highlight]} />
           {ITEMS.map((it, i) => {
             const on = i === selected;
-            const ink = on || it.key === 'new' ? t.accent : t.text;
+            const ink = on ? t.accent : t.text;
             return (
               <AnimatedPressable key={it.key} entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)} layout={LinearTransition.springify().damping(26).stiffness(320)} disabled={on} onPress={() => go(i)} style={s.item}>
                 <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
