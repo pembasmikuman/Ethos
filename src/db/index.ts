@@ -24,6 +24,8 @@ export type Exercise = {
   /** Raw name without brand. Present on rows from list queries. */
   base?: string;
   brand: string;
+  /** Grouping label for Moves. Empty = stands alone. */
+  movement: string;
   primary_muscle: string;
   secondary_muscles: string;
   equipment: string | null;

@@ -51,6 +51,21 @@ const MIGRATIONS: string[] = [
   `,
   // Machine brand / variant. Shown as "Name · Brand"; same movement on two machines = two exercises.
   `ALTER TABLE exercises ADD COLUMN brand TEXT NOT NULL DEFAULT '';`,
+  // Movement group: "Chest Press" collects barbell / dumbbell / machine variants under one Moves row.
+  `
+  ALTER TABLE exercises ADD COLUMN movement TEXT NOT NULL DEFAULT '';
+  UPDATE exercises SET movement = 'Chest Press' WHERE id IN ('bench', 'incline-db', 'machine-press') AND movement = '';
+  UPDATE exercises SET movement = 'Vertical Pull' WHERE id IN ('pullup', 'lat-pulldown') AND movement = '';
+  UPDATE exercises SET movement = 'Row' WHERE id IN ('bb-row', 'cable-row', 'db-row') AND movement = '';
+  UPDATE exercises SET movement = 'Squat' WHERE id IN ('squat', 'hack-squat', 'split-squat') AND movement = '';
+  UPDATE exercises SET movement = 'Leg Curl' WHERE id IN ('leg-curl', 'seated-curl') AND movement = '';
+  UPDATE exercises SET movement = 'Shoulder Press' WHERE id IN ('ohp', 'db-shoulder') AND movement = '';
+  UPDATE exercises SET movement = 'Lateral Raise' WHERE id IN ('lateral-raise', 'cable-lateral') AND movement = '';
+  UPDATE exercises SET movement = 'Rear Delt' WHERE id IN ('rear-delt', 'face-pull') AND movement = '';
+  UPDATE exercises SET movement = 'Curl' WHERE id IN ('bb-curl', 'db-curl', 'hammer-curl', 'preacher-curl') AND movement = '';
+  UPDATE exercises SET movement = 'Triceps Extension' WHERE id IN ('pushdown', 'overhead-ext', 'skullcrusher') AND movement = '';
+  UPDATE exercises SET movement = 'Calf Raise' WHERE id IN ('calf-raise', 'seated-calf') AND movement = '';
+  `,
 ];
 
 export async function migrate(db: SQLiteDatabase): Promise<void> {

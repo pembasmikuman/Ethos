@@ -32,23 +32,25 @@ export default function NewExercise() {
   const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
   const [brand, setBrand] = useState('');
+  const [movement, setMovement] = useState('');
   const [muscle, setMuscle] = useState('chest');
   const [equipment, setEquipment] = useState('barbell');
   const ok = name.trim().length > 0;
 
   useEffect(() => {
     if (!edit) return;
-    exerciseById(edit).then((e) => { if (e) { setName(e.name); setBrand(e.brand); setMuscle(e.primary_muscle); setEquipment(e.equipment ?? 'barbell'); } });
+    exerciseById(edit).then((e) => { if (e) { setName(e.name); setBrand(e.brand); setMovement(e.movement); setMuscle(e.primary_muscle); setEquipment(e.equipment ?? 'barbell'); } });
   }, [edit]);
 
   const save = async () => {
     if (!ok) return;
+    const identity = { name: name.trim(), brand: brand.trim(), movement: movement.trim(), primary_muscle: muscle, equipment };
     if (edit) {
-      await renameExercise(edit, name.trim(), brand.trim(), muscle, equipment);
+      await renameExercise(edit, identity);
       router.back();
       return;
     }
-    const id = await createExercise(name.trim(), brand.trim(), muscle, equipment);
+    const id = await createExercise(identity);
     if (routine) {
       await addRoutineExercise(routine, id);
       router.dismiss(2);
@@ -63,7 +65,9 @@ export default function NewExercise() {
       </View>
       <Label style={s.section}>Name</Label>
       <TextInput value={name} onChangeText={setName} autoFocus placeholder="e.g. Pendlay row" placeholderTextColor={t.dim} style={[s.name, { color: t.text, borderBottomColor: t.line }]} />
-      <Label style={s.section}>Brand · machine variant</Label>
+      <Label style={s.section}>Movement group · optional</Label>
+      <TextInput value={movement} onChangeText={setMovement} placeholder="e.g. Chest Press" placeholderTextColor={t.dim} autoCapitalize="words" style={[s.brand, { color: t.text, borderBottomColor: t.line }]} />
+      <Label style={s.section}>Brand · optional</Label>
       <TextInput value={brand} onChangeText={setBrand} placeholder="e.g. Technogym, Hammer" placeholderTextColor={t.dim} autoCapitalize="words" style={[s.brand, { color: t.text, borderBottomColor: t.line }]} />
       <Label style={s.section}>Primary muscle</Label>
       <Chips options={MUSCLES} value={muscle} onChange={setMuscle} />

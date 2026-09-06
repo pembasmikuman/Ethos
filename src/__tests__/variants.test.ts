@@ -6,6 +6,7 @@ test('groupVariants merges same base under one row', () => {
     { base: 'Chest Press', name: 'Chest Press · A', primary_muscle: 'chest' },
     { base: 'Chest Press', name: 'Chest Press · B', primary_muscle: 'chest' },
     { base: 'Row', name: 'Row', primary_muscle: 'back' },
+    { base: 'Barbell Bench Press', name: 'Barbell Bench Press', movement: 'Chest Press', primary_muscle: 'chest' },
   ]);
-  expect(g.map((x) => [x.base, x.items.length])).toEqual([['Chest Press', 2], ['Row', 1]]);
+  expect(g.map((x) => [x.base, x.items.length])).toEqual([['Chest Press', 3], ['Row', 1]]);
 });

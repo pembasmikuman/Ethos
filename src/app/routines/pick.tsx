@@ -60,7 +60,7 @@ export default function PickExercise() {
             </Pressable>
             {expanded && g.items.map((e) => (
               <Pressable key={e.id} onPress={() => pick(e)} style={({ pressed }) => [s.row, s.sub, { borderBottomColor: t.line, opacity: pressed ? 0.7 : 1 }]}>
-                <Label color={t.accent} style={{ flex: 1 }}>{e.brand || 'no brand'}</Label>
+                <Doto size={16} style={{ flex: 1 }}>{e.name.toUpperCase()}</Doto>
                 <Label color={t.dim}>{e.equipment}</Label>
                 <Label color={t.dim}>›</Label>
               </Pressable>
