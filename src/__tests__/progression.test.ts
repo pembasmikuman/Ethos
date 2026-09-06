@@ -46,3 +46,15 @@ test('weekly volume credits secondary at half', () => {
   ]);
   expect(v).toEqual({ chest: 2, triceps: 2, delts: 1 });
 });
+
+import { daysAgo, upNext } from '../lib/progression';
+
+test('upNext: never done first, then oldest', () => {
+  const r = [{ id: 'a', last_done: '2026-09-05' }, { id: 'b', last_done: null }, { id: 'c', last_done: '2026-09-01' }];
+  expect(upNext(r).map((x) => x.id)).toEqual(['b', 'c', 'a']);
+});
+
+test('daysAgo', () => {
+  expect(daysAgo(null)).toBeNull();
+  expect(daysAgo('2026-09-01T10:00:00Z', Date.parse('2026-09-04T09:00:00Z'))).toBe(2);
+});

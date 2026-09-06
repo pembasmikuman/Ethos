@@ -1,7 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import { getDb, type Exercise } from './index';
 
-export type Routine = { id: string; name: string; exercises: number };
+export type Routine = { id: string; name: string; exercises: number; last_done: string | null };
 export type LoggedSet = {
   id: string;
   session_id: string;
@@ -16,7 +16,10 @@ export type LoggedSet = {
 
 export async function listRoutines(): Promise<Routine[]> {
   const db = await getDb();
-  return db.getAllAsync<Routine>('SELECT r.id, r.name, (SELECT COUNT(*) FROM routine_exercises re WHERE re.routine_id = r.id) AS exercises FROM routines r ORDER BY r.name');
+  return db.getAllAsync<Routine>(`SELECT r.id, r.name,
+       (SELECT COUNT(*) FROM routine_exercises re WHERE re.routine_id = r.id) AS exercises,
+       (SELECT MAX(end_time) FROM workout_sessions ws WHERE ws.routine_id = r.id AND ws.end_time IS NOT NULL) AS last_done
+     FROM routines r ORDER BY r.name`);
 }
 
 export async function routineExercises(routineId: string): Promise<(Exercise & { target_sets: number })[]> {

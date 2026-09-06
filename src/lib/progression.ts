@@ -72,3 +72,12 @@ export function weekStart(d = new Date()): string {
   x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
   return x.toISOString();
 }
+
+/** Routines ordered for Home: never done first, then longest ago. Stable on ties. */
+export function upNext<T extends { last_done: string | null }>(routines: T[]): T[] {
+  return [...routines].sort((a, b) => (a.last_done ?? '').localeCompare(b.last_done ?? ''));
+}
+
+export function daysAgo(iso: string | null, now = Date.now()): number | null {
+  return iso ? Math.floor((now - new Date(iso).getTime()) / 86400000) : null;
+}

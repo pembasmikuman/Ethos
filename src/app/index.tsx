@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { listRoutines, recentSessions, setsSince, type Routine } from '../db/queries';
-import { weeklyVolume, weekStart } from '../lib/progression';
+import { daysAgo, upNext, weeklyVolume, weekStart } from '../lib/progression';
 import { DotBars } from '../components/DotBars';
 import { DOCK_HEIGHT } from '../components/Dock';
 import { useTheme } from '../lib/theme';
@@ -26,7 +26,7 @@ export default function Home() {
 
   useFocusEffect(
     useCallback(() => {
-      listRoutines().then(setRoutines);
+      listRoutines().then((r) => setRoutines(upNext(r)));
       recentSessions().then(setRecent);
       setsSince(weekStart()).then((rows) => setVolume(weeklyVolume(rows)));
     }, []),
@@ -60,16 +60,23 @@ export default function Home() {
         <Label>Routines</Label>
         <Pressable onPress={() => router.push('/routines')} hitSlop={12}><Label color={t.accent}>Edit</Label></Pressable>
       </View>
-      {routines.map((r) => (
-        <Pressable
-          key={r.id}
-          onPress={() => go(r)}
-          style={({ pressed }) => [s.card, { backgroundColor: t.card, borderColor: t.line, opacity: pressed ? 0.85 : 1 }]}
-        >
-          <Doto size={28}>{r.name.toUpperCase()}</Doto>
-          <Label color={t.accent}>Start</Label>
-        </Pressable>
-      ))}
+      {routines.map((r, i) => {
+        const ago = daysAgo(r.last_done);
+        const next = i === 0;
+        return (
+          <Pressable
+            key={r.id}
+            onPress={() => go(r)}
+            style={({ pressed }) => [s.card, { backgroundColor: t.card, borderColor: next ? t.accent : t.line, opacity: pressed ? 0.85 : 1 }]}
+          >
+            <View style={{ gap: 4 }}>
+              <Doto size={28}>{r.name.toUpperCase()}</Doto>
+              <Label color={next ? t.accent : t.dim}>{next ? 'Up next · ' : ''}{ago === null ? 'never done' : ago === 0 ? 'today' : `${ago}d ago`}</Label>
+            </View>
+            <Label color={t.accent}>Start</Label>
+          </Pressable>
+        );
+      })}
 
       <View style={[s.panel, { backgroundColor: t.card, borderColor: t.line }]}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -84,12 +91,12 @@ export default function Home() {
         const mins = r.end_time ? Math.round((new Date(r.end_time).getTime() - new Date(r.start_time).getTime()) / 60000) : 0;
         const day = new Date(r.start_time).toLocaleDateString('en-GB', { weekday: 'short' });
         return (
-          <View key={r.id} style={[s.row, { borderBottomColor: t.line }]}>
+          <Pressable key={r.id} onPress={() => router.push(`/history/${r.id}`)} style={({ pressed }) => [s.row, { borderBottomColor: t.line, opacity: pressed ? 0.7 : 1 }]}>
             <Doto size={20} style={{ flex: 1 }}>{r.title.toUpperCase()}</Doto>
             <Label color={t.dim}>{day}</Label>
             <Label>{mins} min</Label>
             <Label>{r.sets} sets</Label>
-          </View>
+          </Pressable>
         );
       })}
     </ScrollView>
