@@ -170,22 +170,19 @@ export default function Workout() {
         style={{ flex: 1 }}
       >
         {w.blocks.map((b, bi) => (
-          <View key={b.exercise.id + bi} style={{ height: pageH || undefined }}>
+          <View key={b.exercise.id + bi} style={{ height: pageH || undefined, paddingRight: 14 }}>
             <ExercisePage block={b} active={bi === w.exIdx} restLeft={restLeft} />
           </View>
         ))}
       </ScrollView>
+      <View pointerEvents="none" style={s.dots}>
+        {w.blocks.map((b, i) => <View key={i} style={{ width: 6, height: i === w.exIdx ? 14 : 6, borderRadius: 3, backgroundColor: i === w.exIdx ? t.accent : b.sets.length > 0 && b.sets.every((x) => x.done) ? t.green : t.dim }} />)}
+      </View>
 
       <View style={s.nav}>
-        <Pressable disabled={w.exIdx === 0} onPress={() => w.setExercise(w.exIdx - 1)} hitSlop={8} style={{ minHeight: 44, justifyContent: 'center' }}>
-          <Label color={w.exIdx === 0 ? t.dim : t.text}>‹ Prev</Label>
-        </Pressable>
-        <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 6 }}>
-          {w.blocks.map((b, i) => <View key={i} style={{ width: i === w.exIdx ? 14 : 6, height: 6, borderRadius: 3, backgroundColor: i === w.exIdx ? t.accent : b.sets.length > 0 && b.sets.every((x) => x.done) ? t.green : t.dim }} />)}
-        </View>
-        <Pressable disabled={!w.blocks[w.exIdx + 1]} onPress={() => w.setExercise(w.exIdx + 1)} hitSlop={8} style={{ minHeight: 44, justifyContent: 'center' }}>
-          <Label color={!w.blocks[w.exIdx + 1] ? t.dim : t.text}>Next ›</Label>
-        </Pressable>
+        <Label color={t.dim} numberOfLines={1} style={{ flex: 1, textAlign: 'center' }}>
+          {w.blocks[w.exIdx + 1] ? `↑ Next · ${w.blocks[w.exIdx + 1].exercise.name}` : 'Last exercise'}
+        </Label>
       </View>
 
       <Numpad onKey={onKey} onDone={onDone} doneLabel={doneLabel} />
@@ -200,4 +197,5 @@ const s = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4 },
   actions: { flexDirection: 'row', gap: 24, paddingHorizontal: 12, paddingVertical: 10 },
   nav: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 4 },
+  dots: { position: 'absolute', right: 16, top: '38%', gap: 6, alignItems: 'center' },
 });
