@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, useColorScheme, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { FadeIn, FadeOut, LinearTransition, runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
-import { useTheme } from '../lib/theme';
+import { useScheme, useTheme } from '../lib/theme';
 import { fmtClock } from '../lib/format';
 import { tapHaptic } from '../lib/rest';
 import { useWorkout } from '../store/workout';
@@ -50,7 +50,7 @@ function rubberband(over: number, dim: number, c = 0.55): number {
 
 export function Dock() {
   const t = useTheme();
-  const scheme = useColorScheme();
+  const scheme = useScheme();
   const insets = useSafeAreaInsets();
   const path = usePathname();
   const active = useWorkout((s) => s.sessionId !== null);

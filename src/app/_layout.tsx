@@ -1,14 +1,14 @@
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useColorScheme, View } from 'react-native';
+import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useTheme } from '../lib/theme';
+import { useScheme, useTheme } from '../lib/theme';
 import { Dock } from '../components/Dock';
 
 export default function Layout() {
   const t = useTheme();
-  const scheme = useColorScheme();
+  const scheme = useScheme();
   const [loaded] = useFonts({
     'DotoRound-900': require('../../assets/fonts/DotoRound-900.ttf'),
     'DotoRound-700': require('../../assets/fonts/DotoRound-700.ttf'),

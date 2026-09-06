@@ -1,4 +1,5 @@
 import { useColorScheme } from 'react-native';
+import { useUi } from '../store/ui';
 
 const dark = {
   bg: '#0A0A0B',
@@ -29,8 +30,15 @@ const light: typeof dark = {
 
 export type Theme = typeof dark;
 
+export function useScheme(): 'light' | 'dark' {
+  const system = useColorScheme();
+  const pref = useUi((s) => s.appearance);
+  if (pref === 'system') return system === 'light' ? 'light' : 'dark';
+  return pref;
+}
+
 export function useTheme(): Theme {
-  return useColorScheme() === 'light' ? light : dark;
+  return useScheme() === 'light' ? light : dark;
 }
 
 export const fonts = {

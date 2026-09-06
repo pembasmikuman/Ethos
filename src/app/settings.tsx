@@ -6,12 +6,15 @@ import { backupSummary, exportBackup, pickBackup, restoreBackup } from '../lib/b
 import { tapHaptic } from '../lib/rest';
 import { Doto, Label } from '../components/Text';
 import { DOCK_HEIGHT } from '../components/Dock';
+import { useUi, type Appearance } from '../store/ui';
 
 export default function Settings() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const appearance = useUi((s) => s.appearance);
+  const setAppearance = useUi((s) => s.setAppearance);
 
   const run = async (label: string, fn: () => Promise<string | void>) => {
     if (busy) return;
@@ -56,6 +59,17 @@ export default function Settings() {
   return (
     <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
       <Doto size={40}>SETTINGS</Doto>
+      <Label style={s.section}>Appearance</Label>
+      <View style={[s.seg, { backgroundColor: t.card, borderColor: t.line }]}>
+        {(['system', 'dark', 'light'] as Appearance[]).map((a) => {
+          const on = a === appearance;
+          return (
+            <Pressable key={a} onPressIn={tapHaptic} onPress={() => setAppearance(a)} style={[s.segItem, { backgroundColor: on ? t.bg : 'transparent', borderColor: on ? t.line : 'transparent' }]}>
+              <Label color={on ? t.accent : t.mute}>{a}</Label>
+            </Pressable>
+          );
+        })}
+      </View>
       <Label style={s.section}>Backup</Label>
       {row('EXPORT', 'Save a JSON snapshot to Files or iCloud Drive', () => run('export', exportBackup))}
       {row('RESTORE', 'Pick a backup file. Replaces all current data.', onRestore, true)}
@@ -68,4 +82,6 @@ const s = StyleSheet.create({
   page: { paddingHorizontal: 16, gap: 8 },
   section: { paddingHorizontal: 4, paddingTop: 16, paddingBottom: 4 },
   row: { padding: 16, borderRadius: 16, borderWidth: 1, minHeight: 64 },
+  seg: { flexDirection: 'row', padding: 4, borderRadius: 14, borderWidth: 1, gap: 4 },
+  segItem: { flex: 1, minHeight: 44, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
 });
