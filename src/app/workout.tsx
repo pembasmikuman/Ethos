@@ -181,7 +181,7 @@ export default function Workout() {
 
       <View style={s.nav}>
         <Label color={t.dim} numberOfLines={1} style={{ flex: 1, textAlign: 'center' }}>
-          {w.blocks[w.exIdx + 1] ? `↑ Next · ${w.blocks[w.exIdx + 1].exercise.name}` : 'Last exercise'}
+          {w.blocks[w.exIdx + 1] ? `↓ Next · ${w.blocks[w.exIdx + 1].exercise.name}` : 'Last exercise'}
         </Label>
       </View>
 
