@@ -8,9 +8,10 @@ import { DotBars } from '../components/DotBars';
 import { DOCK_HEIGHT } from '../components/Dock';
 import { useTheme } from '../lib/theme';
 import { useWorkout } from '../store/workout';
+import { useUi } from '../store/ui';
 import { Doto, Label } from '../components/Text';
 
-const MUSCLES: [string, string][] = [['CHEST', 'chest'], ['BACK', 'back'], ['QUAD', 'quads'], ['HAM', 'hamstrings'], ['DELT', 'delts'], ['BI', 'biceps'], ['TRI', 'triceps']];
+const MUSCLES: [string, string][] = [['CHEST', 'chest'], ['BACK', 'back'], ['QUAD', 'quads'], ['HAM', 'hamstrings'], ['GLUTE', 'glutes'], ['DELT', 'delts'], ['BI', 'biceps'], ['TRI', 'triceps'], ['CALF', 'calves'], ['ABS', 'abs']];
 
 type Recent = Awaited<ReturnType<typeof recentSessions>>[number];
 
@@ -23,6 +24,9 @@ export default function Home() {
   const [recent, setRecent] = useState<Recent[]>([]);
   const [busy, setBusy] = useState(false);
   const [volume, setVolume] = useState<Record<string, number>>({});
+  const [editing, setEditing] = useState(false);
+  const shown = useUi((s) => s.volumeMuscles);
+  const toggle = useUi((s) => s.toggleVolumeMuscle);
 
   useFocusEffect(
     useCallback(() => {
@@ -56,6 +60,12 @@ export default function Home() {
         <Label>{today}</Label>
       </View>
 
+      <View style={[s.panel, { backgroundColor: t.card, borderColor: t.line }]}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <Label>This week · hard sets</Label>
+          <Label color={t.green}>10–20 band</Label>
+        </View>
+
       <View style={[s.section, { flexDirection: 'row', justifyContent: 'space-between' }]}>
         <Label>Routines</Label>
         <Pressable onPress={() => router.push('/routines')} hitSlop={12}><Label color={t.accent}>Edit</Label></Pressable>
@@ -79,11 +89,6 @@ export default function Home() {
         );
       })}
 
-      <View style={[s.panel, { backgroundColor: t.card, borderColor: t.line }]}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <Label>This week · hard sets</Label>
-          <Label color={t.green}>10–20 band</Label>
-        </View>
         <DotBars items={MUSCLES.map(([label, key]) => ({ label, value: volume[key] ?? 0 }))} />
       </View>
 
@@ -109,6 +114,8 @@ const s = StyleSheet.create({
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 4, paddingBottom: 12 },
   section: { paddingHorizontal: 4, paddingTop: 12, paddingBottom: 4 },
   card: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 18, borderRadius: 16, borderWidth: 1, minHeight: 64 },
-  panel: { padding: 16, borderRadius: 16, borderWidth: 1, gap: 12, marginTop: 12 },
+  panel: { padding: 16, borderRadius: 16, borderWidth: 1, gap: 12 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, minHeight: 44 },
 });
