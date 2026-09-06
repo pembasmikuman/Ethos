@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '../lib/theme';
+import { useTheme, useTopInset } from '../lib/theme';
 import { backupSummary, exportBackup, pickBackup, restoreBackup } from '../lib/backup';
 import { tapHaptic } from '../lib/rest';
 import { Doto, Label } from '../components/Text';
@@ -11,6 +11,7 @@ import { useUi, type Appearance } from '../store/ui';
 export default function Settings() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
+  const top = useTopInset();
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const appearance = useUi((s) => s.appearance);
@@ -57,7 +58,7 @@ export default function Settings() {
   );
 
   return (
-    <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
+    <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={[s.page, { paddingTop: top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
       <Doto size={40}>SETTINGS</Doto>
       <Label style={s.section}>Appearance</Label>
       <View style={[s.seg, { backgroundColor: t.card, borderColor: t.line }]}>

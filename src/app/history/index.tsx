@@ -3,7 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { allSessions, deleteSession, type SessionRow } from '../../db/queries';
-import { useTheme } from '../../lib/theme';
+import { useTheme, useTopInset } from '../../lib/theme';
 import { Doto, Label } from '../../components/Text';
 import { DOCK_HEIGHT } from '../../components/Dock';
 
@@ -16,6 +16,7 @@ export function sessionMeta(r: SessionRow) {
 export default function History() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
+  const top = useTopInset();
   const [rows, setRows] = useState<SessionRow[]>([]);
 
   const load = () => allSessions().then(setRows);
@@ -28,7 +29,7 @@ export default function History() {
     ]);
 
   return (
-    <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
+    <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={[s.page, { paddingTop: top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
       <View style={s.head}>
         <Doto size={40}>HISTORY</Doto>
         <Label>{rows.length} sessions</Label>

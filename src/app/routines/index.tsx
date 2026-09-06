@@ -3,13 +3,14 @@ import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createRoutine, deleteRoutine, listRoutines, type Routine } from '../../db/queries';
-import { useTheme } from '../../lib/theme';
+import { useTheme, useTopInset } from '../../lib/theme';
 import { Doto, Label } from '../../components/Text';
 import { DOCK_HEIGHT } from '../../components/Dock';
 
 export default function Routines() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
+  const top = useTopInset();
   const [rows, setRows] = useState<Routine[]>([]);
 
   const load = () => listRoutines().then(setRows);
@@ -27,7 +28,7 @@ export default function Routines() {
     ]);
 
   return (
-    <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
+    <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={[s.page, { paddingTop: top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
       <View style={s.head}>
         <Doto size={40}>ROUTINES</Doto>
         <Pressable onPress={() => router.back()} hitSlop={12}><Label color={t.accent}>Done</Label></Pressable>

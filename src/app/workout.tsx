@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '../lib/theme';
+import { useTheme, useTopInset } from '../lib/theme';
 import { applyKey, fmtClock, fmtKg } from '../lib/format';
 import { doneHaptic, tapHaptic } from '../lib/rest';
 import { useWorkout } from '../store/workout';
@@ -79,6 +79,7 @@ function ExercisePage({ block, active, restLeft }: { block: ExerciseBlock; activ
 export default function Workout() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
+  const top = useTopInset();
   const w = useWorkout();
   const block = w.blocks[w.exIdx];
   const [now, setNow] = useState(Date.now());
@@ -140,7 +141,7 @@ export default function Workout() {
   const restLeft = w.rest ? Math.round((w.rest.endsAt - now) / 1000) : 0;
 
   return (
-    <View style={[s.page, { backgroundColor: t.bg, paddingTop: insets.top + 8, paddingBottom: insets.bottom + DOCK_HEIGHT }]}>
+    <View style={[s.page, { backgroundColor: t.bg, paddingTop: top + 8, paddingBottom: insets.bottom + DOCK_HEIGHT }]}>
       <View style={s.head}>
         <View style={{ gap: 4, flex: 1 }}>
           <Pressable onPress={() => router.navigate('/session')} hitSlop={8}><Label color={t.accent}>‹ {w.title} · {w.exIdx + 1} / {w.blocks.length}</Label></Pressable>

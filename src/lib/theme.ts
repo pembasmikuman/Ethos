@@ -1,4 +1,5 @@
-import { useColorScheme } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Platform, useColorScheme } from 'react-native';
 import { useUi } from '../store/ui';
 
 const dark = {
@@ -47,3 +48,9 @@ export const fonts = {
   mono: 'JetBrainsMono_500Medium',
   monoBold: 'JetBrainsMono_600SemiBold',
 };
+
+/** Top inset. iPadOS windowed apps draw window controls over the top-left with a tiny inset; give them room. */
+export function useTopInset(): number {
+  const top = useSafeAreaInsets().top;
+  return Platform.OS === 'ios' && Platform.isPad ? Math.max(top, 44) : top;
+}

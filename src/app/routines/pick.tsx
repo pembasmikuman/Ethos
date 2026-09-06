@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { addRoutineExercise, allExercises, replaceRoutineExercise, routineExerciseRows } from '../../db/queries';
 import type { Exercise } from '../../db';
-import { fonts, useTheme } from '../../lib/theme';
+import { fonts, useTheme, useTopInset } from '../../lib/theme';
 import { groupVariants } from '../../lib/variants';
 import { Doto, Label } from '../../components/Text';
 import { DOCK_HEIGHT } from '../../components/Dock';
@@ -16,6 +16,7 @@ export default function PickExercise() {
   const blocks = useWorkout((s) => s.blocks);
   const t = useTheme();
   const insets = useSafeAreaInsets();
+  const top = useTopInset();
   const [all, setAll] = useState<Exercise[]>([]);
   const [have, setHave] = useState<Set<string>>(new Set());
   const [q, setQ] = useState('');
@@ -39,7 +40,7 @@ export default function PickExercise() {
 
   let lastMuscle = '';
   return (
-    <ScrollView style={{ backgroundColor: t.bg }} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
+    <ScrollView style={{ backgroundColor: t.bg }} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page, { paddingTop: top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
       <View style={s.head}>
         <Doto size={32}>{replace || session === 'swap' ? 'SWAP WITH' : 'ADD EXERCISE'}</Doto>
         <Pressable onPress={() => router.back()} hitSlop={12}><Label color={t.accent}>Cancel</Label></Pressable>

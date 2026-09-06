@@ -4,7 +4,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { allExercises } from '../../db/queries';
 import type { Exercise } from '../../db';
-import { fonts, useTheme } from '../../lib/theme';
+import { fonts, useTheme, useTopInset } from '../../lib/theme';
 import { groupVariants } from '../../lib/variants';
 import { Doto, Label } from '../../components/Text';
 import { DOCK_HEIGHT } from '../../components/Dock';
@@ -15,6 +15,7 @@ const EQUIPMENT = ['barbell', 'dumbbell', 'cable', 'machine', 'bodyweight'];
 export default function Exercises() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
+  const top = useTopInset();
   const [all, setAll] = useState<Exercise[]>([]);
   const [q, setQ] = useState('');
   const [open, setOpen] = useState<string | null>(null);
@@ -41,7 +42,7 @@ export default function Exercises() {
   const goTo = (e: Exercise) => router.push(`/exercise/${e.id}`);
   let lastMuscle = '';
   return (
-    <ScrollView style={{ backgroundColor: t.bg }} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
+    <ScrollView style={{ backgroundColor: t.bg }} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page, { paddingTop: top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
       <View style={s.head}>
         <Doto size={40}>MOVES</Doto>
         <Pressable onPress={() => router.push('/exercise/new')} hitSlop={12} style={[s.newBtn, { backgroundColor: t.accent }]}><Label color={t.bg}>+ New</Label></Pressable>

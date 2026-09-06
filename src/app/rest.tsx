@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '../lib/theme';
+import { useTheme, useTopInset } from '../lib/theme';
 import { fmtClock, fmtKg } from '../lib/format';
 import { doneHaptic, tapHaptic } from '../lib/rest';
 import { useWorkout } from '../store/workout';
@@ -12,6 +12,7 @@ import { DotRing } from '../components/DotRing';
 export default function Rest() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
+  const top = useTopInset();
   const w = useWorkout();
   const [now, setNow] = useState(Date.now());
 
@@ -45,7 +46,7 @@ export default function Rest() {
   );
 
   return (
-    <View style={[s.page, { backgroundColor: t.bg, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 16 }]}>
+    <View style={[s.page, { backgroundColor: t.bg, paddingTop: top + 24, paddingBottom: insets.bottom + 16 }]}>
       <View style={s.head}>
         <Label>Rest · {block?.exercise.name}</Label>
         <Label>Set {w.focus.setIdx + 1} of {block?.sets.length}</Label>

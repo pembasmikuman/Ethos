@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { addRoutineExercise, createExercise, duplicateExercise, exerciseById, renameExercise } from '../../db/queries';
-import { fonts, useTheme } from '../../lib/theme';
+import { fonts, useTheme, useTopInset } from '../../lib/theme';
 import { Doto, Label } from '../../components/Text';
 import { DOCK_HEIGHT } from '../../components/Dock';
 
@@ -30,6 +30,7 @@ export default function NewExercise() {
   const { routine, edit } = useLocalSearchParams<{ routine?: string; edit?: string }>();
   const t = useTheme();
   const insets = useSafeAreaInsets();
+  const top = useTopInset();
   const [name, setName] = useState('');
   const [brand, setBrand] = useState('');
   const [movement, setMovement] = useState('');
@@ -58,7 +59,7 @@ export default function NewExercise() {
   };
 
   return (
-    <ScrollView style={{ backgroundColor: t.bg }} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
+    <ScrollView style={{ backgroundColor: t.bg }} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page, { paddingTop: top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
       <View style={s.head}>
         <Doto size={32}>{edit ? 'EDIT' : 'NEW EXERCISE'}</Doto>
         <Pressable onPress={() => router.back()} hitSlop={12}><Label color={t.accent}>Cancel</Label></Pressable>

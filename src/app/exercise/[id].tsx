@@ -7,7 +7,7 @@ import { deleteExercise, duplicateExercise, exerciseById, exerciseHistory, updat
 import { epley1RM } from '../../lib/progression';
 import { fmtKg } from '../../lib/format';
 import { tapHaptic } from '../../lib/rest';
-import { useTheme } from '../../lib/theme';
+import { useTheme, useTopInset } from '../../lib/theme';
 import { Doto, Label } from '../../components/Text';
 import { DotTrend } from '../../components/DotTrend';
 import { DOCK_HEIGHT } from '../../components/Dock';
@@ -31,6 +31,7 @@ export default function ExerciseDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const t = useTheme();
   const insets = useSafeAreaInsets();
+  const top = useTopInset();
   const [ex, setEx] = useState<Exercise | null>(null);
   const [hist, setHist] = useState<Hist>([]);
 
@@ -65,7 +66,7 @@ export default function ExerciseDetail() {
   const best = hist.map((h) => Math.round(Math.max(...h.sets.map((x) => epley1RM(x.weight, x.reps, x.rir ?? 0))))).reverse();
 
   return (
-    <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
+    <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={[s.page, { paddingTop: top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4, paddingBottom: 12 }}>
         <Pressable onPress={() => router.back()} hitSlop={12}><Label color={t.accent}>‹ Back</Label></Pressable>
         <Pressable onPress={onMenu} hitSlop={12}><Label color={t.accent}>Edit</Label></Pressable>

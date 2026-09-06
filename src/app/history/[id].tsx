@@ -3,7 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { deleteSession, deleteSet, sessionById, sessionSets, updateSet, type SessionRow } from '../../db/queries';
-import { useTheme } from '../../lib/theme';
+import { useTheme, useTopInset } from '../../lib/theme';
 import { applyKey, fmtKg } from '../../lib/format';
 import { epley1RM } from '../../lib/progression';
 import { doneHaptic } from '../../lib/rest';
@@ -20,6 +20,7 @@ type Edit = { id: string; field: Field; weight: string; reps: string; rir: strin
 export default function SessionDetail() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
+  const top = useTopInset();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [session, setSession] = useState<SessionRow | null>(null);
   const [sets, setSets] = useState<SetRow[]>([]);
@@ -101,7 +102,7 @@ export default function SessionDetail() {
 
   return (
     <View style={{ flex: 1, backgroundColor: t.bg }}>
-      <ScrollView contentContainerStyle={[st.page, { paddingTop: insets.top + 12, paddingBottom: (edit ? 12 : insets.bottom + DOCK_HEIGHT + 12) }]}>
+      <ScrollView contentContainerStyle={[st.page, { paddingTop: top + 12, paddingBottom: (edit ? 12 : insets.bottom + DOCK_HEIGHT + 12) }]}>
         <Pressable onPress={() => edit && setEdit(null)} style={StyleSheet.absoluteFill} />
         <Pressable onPress={() => router.back()} hitSlop={10} style={{ paddingHorizontal: 4, minHeight: 44, justifyContent: 'center' }}>
           <Label color={t.text}>‹ History</Label>

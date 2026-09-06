@@ -6,7 +6,7 @@ import { listRoutines, recentSessions, setsSince, type Routine } from '../db/que
 import { daysAgo, upNext, weeklyVolume, weekStart } from '../lib/progression';
 import { DotBars } from '../components/DotBars';
 import { DOCK_HEIGHT } from '../components/Dock';
-import { useTheme } from '../lib/theme';
+import { useTheme, useTopInset } from '../lib/theme';
 import { useWorkout } from '../store/workout';
 import { useUi } from '../store/ui';
 import { Doto, Label } from '../components/Text';
@@ -18,6 +18,7 @@ type Recent = Awaited<ReturnType<typeof recentSessions>>[number];
 export default function Home() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
+  const top = useTopInset();
   const preview = useWorkout((s) => s.preview);
   const active = useWorkout((s) => s.sessionId !== null);
   const [routines, setRoutines] = useState<Routine[]>([]);
@@ -54,7 +55,7 @@ export default function Home() {
   const today = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' });
 
   return (
-    <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
+    <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={[s.page, { paddingTop: top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
       <View style={s.head}>
         <Doto size={40}>ETHOS</Doto>
         <Label>{today}</Label>

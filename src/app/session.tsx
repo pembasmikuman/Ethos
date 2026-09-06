@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '../lib/theme';
+import { useTheme, useTopInset } from '../lib/theme';
 import { fmtClock } from '../lib/format';
 import { doneHaptic, tapHaptic } from '../lib/rest';
 import { useWorkout } from '../store/workout';
@@ -14,6 +14,7 @@ import { DragRow, ROW_H, useDragList } from '../components/DragRow';
 export default function Session() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
+  const top = useTopInset();
   const w = useWorkout();
   const [dragging, setDragging] = useState(false);
   const drag = useDragList();
@@ -42,7 +43,7 @@ export default function Session() {
 
   return (
     <View style={{ flex: 1, backgroundColor: t.bg }}>
-    <ScrollView scrollEnabled={!dragging} contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + (started ? 12 : 90) }]}>
+    <ScrollView scrollEnabled={!dragging} contentContainerStyle={[s.page, { paddingTop: top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + (started ? 12 : 90) }]}>
       <View style={s.head}>
         <View style={{ gap: 4 }}>
           <Label color={started ? t.mute : t.accent}>{started ? `${fmtClock((now - w.startedAt) / 1000)} elapsed` : 'Preview · not started'}</Label>

@@ -3,7 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { listRoutines, removeRoutineExercise, renameRoutine, reorderRoutine, routineExerciseRows, setTargetSets, type RoutineExercise } from '../../db/queries';
-import { fonts, useTheme } from '../../lib/theme';
+import { fonts, useTheme, useTopInset } from '../../lib/theme';
 import { tapHaptic } from '../../lib/rest';
 import { Doto, Label } from '../../components/Text';
 import { DOCK_HEIGHT } from '../../components/Dock';
@@ -13,6 +13,7 @@ export default function RoutineEditor() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const t = useTheme();
   const insets = useSafeAreaInsets();
+  const top = useTopInset();
   const [name, setName] = useState('');
   const [rows, setRows] = useState<RoutineExercise[]>([]);
   const [dragging, setDragging] = useState(false);
@@ -51,7 +52,7 @@ export default function RoutineEditor() {
     ]);
 
   return (
-    <ScrollView style={{ backgroundColor: t.bg }} scrollEnabled={!dragging} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
+    <ScrollView style={{ backgroundColor: t.bg }} scrollEnabled={!dragging} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page, { paddingTop: top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
       <View style={s.head}>
         <Pressable onPress={() => router.back()} hitSlop={12}><Label color={t.accent}>‹ Routines</Label></Pressable>
         <Label>{rows.length} exercises</Label>
