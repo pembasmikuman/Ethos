@@ -11,6 +11,7 @@ import { Doto, Label } from '../../components/Text';
 import { Numpad } from '../../components/Numpad';
 import { DOCK_HEIGHT } from '../../components/Dock';
 import { sessionMeta } from './index';
+import { useUi } from '../../store/ui';
 
 type SetRow = Awaited<ReturnType<typeof sessionSets>>[number];
 type Field = 'weight' | 'reps' | 'rir';
@@ -29,6 +30,12 @@ export default function SessionDetail() {
     sessionSets(id).then(setSets);
   };
   useEffect(load, [id]);
+
+  const setDockHidden = useUi((s) => s.setDockHidden);
+  useEffect(() => {
+    setDockHidden(edit !== null);
+    return () => setDockHidden(false);
+  }, [edit !== null]);
 
   if (!session) return null;
   const { date, mins } = sessionMeta(session);

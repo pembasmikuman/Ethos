@@ -10,6 +10,7 @@ import { useTheme } from '../lib/theme';
 import { fmtClock } from '../lib/format';
 import { tapHaptic } from '../lib/rest';
 import { useWorkout } from '../store/workout';
+import { useUi } from '../store/ui';
 import { Doto, Label } from './Text';
 
 const ICONS: Record<string, string> = {
@@ -55,6 +56,7 @@ export function Dock() {
   const active = useWorkout((s) => s.sessionId !== null);
   const rest = useWorkout((s) => s.rest);
   const startedAt = useWorkout((s) => s.startedAt);
+  const hidden = useUi((s) => s.dockHidden);
   const [now, setNow] = useState(Date.now());
 
   const ITEMS = active ? ALL_ITEMS : ALL_ITEMS.filter((i) => i.key !== 'log');
@@ -108,6 +110,11 @@ export function Dock() {
       dragging.value = false;
     });
 
+  const wrapStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: withSpring(hidden ? 140 : 0, SNAP) }],
+    opacity: withSpring(hidden ? 0 : 1, SNAP),
+  }));
+
   const highlight = useAnimatedStyle(() => ({
     transform: [{ translateX: x.value }, { scale: withSpring(dragging.value ? 1.08 : 1, SNAP) }],
     opacity: withSpring(dragging.value ? 0.9 : 1, SNAP),
@@ -118,7 +125,7 @@ export function Dock() {
   const glass = scheme === 'light' ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.10)';
 
   return (
-    <View pointerEvents="box-none" style={[s.wrap, { bottom: insets.bottom + 10 }]}>
+    <Animated.View pointerEvents={hidden ? 'none' : 'box-none'} style={[s.wrap, { bottom: insets.bottom + 10 }, wrapStyle]}>
       <GestureDetector gesture={pan}>
         <AnimatedBlur layout={LinearTransition.springify().damping(26).stiffness(320)} intensity={40} tint={scheme === 'light' ? 'light' : 'dark'} style={[s.pill, { borderColor: t.line }]}>
           <Animated.View style={[s.highlight, { backgroundColor: glass, borderColor: t.line }, highlight]} />
@@ -140,7 +147,7 @@ export function Dock() {
           })}
         </AnimatedBlur>
       </GestureDetector>
-    </View>
+    </Animated.View>
   );
 }
 
