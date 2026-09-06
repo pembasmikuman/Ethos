@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { addRoutineExercise, allExercises, replaceRoutineExercise, routineExerciseRows } from '../../db/queries';
 import type { Exercise } from '../../db';
 import { fonts, useTheme } from '../../lib/theme';
+import { groupVariants } from '../../lib/variants';
 import { Doto, Label } from '../../components/Text';
 import { DOCK_HEIGHT } from '../../components/Dock';
 import { useWorkout } from '../../store/workout';
@@ -18,6 +19,7 @@ export default function PickExercise() {
   const [all, setAll] = useState<Exercise[]>([]);
   const [have, setHave] = useState<Set<string>>(new Set());
   const [q, setQ] = useState('');
+  const [open, setOpen] = useState<string | null>(null);
 
   useEffect(() => {
     allExercises().then(setAll);
@@ -43,16 +45,26 @@ export default function PickExercise() {
         <Pressable onPress={() => router.back()} hitSlop={12}><Label color={t.accent}>Cancel</Label></Pressable>
       </View>
       <TextInput value={q} onChangeText={setQ} placeholder="search" placeholderTextColor={t.dim} autoCorrect={false} style={[s.search, { color: t.text, borderColor: t.line, backgroundColor: t.card }]} />
-      {list.map((e) => {
-        const header = e.primary_muscle !== lastMuscle ? e.primary_muscle : null;
-        lastMuscle = e.primary_muscle;
+      {groupVariants(list).map((g) => {
+        const header = g.muscle !== lastMuscle ? g.muscle : null;
+        lastMuscle = g.muscle;
+        const many = g.items.length > 1;
+        const expanded = open === g.key;
         return (
-          <View key={e.id}>
+          <View key={g.key}>
             {header && <Label style={s.section}>{header}</Label>}
-            <Pressable onPress={() => pick(e)} style={({ pressed }) => [s.row, { borderBottomColor: t.line, opacity: pressed ? 0.7 : 1 }]}>
-              <Doto size={20} style={{ flex: 1 }}>{e.name.toUpperCase()}</Doto>
-              <Label color={t.dim}>{e.equipment}</Label>
+            <Pressable onPress={() => (many ? setOpen(expanded ? null : g.key) : pick(g.items[0]))} style={({ pressed }) => [s.row, { borderBottomColor: t.line, opacity: pressed ? 0.7 : 1 }]}>
+              <Doto size={20} style={{ flex: 1 }}>{g.base.toUpperCase()}</Doto>
+              <Label color={many ? t.accent : t.dim}>{many ? `${g.items.length} variants` : g.items[0].equipment}</Label>
+              <Label color={t.dim}>{many ? (expanded ? '▾' : '▸') : '›'}</Label>
             </Pressable>
+            {expanded && g.items.map((e) => (
+              <Pressable key={e.id} onPress={() => pick(e)} style={({ pressed }) => [s.row, s.sub, { borderBottomColor: t.line, opacity: pressed ? 0.7 : 1 }]}>
+                <Label color={t.accent} style={{ flex: 1 }}>{e.brand || 'no brand'}</Label>
+                <Label color={t.dim}>{e.equipment}</Label>
+                <Label color={t.dim}>›</Label>
+              </Pressable>
+            ))}
           </View>
         );
       })}
@@ -69,5 +81,6 @@ const s = StyleSheet.create({
   search: { fontFamily: fonts.mono, fontSize: 14, padding: 12, borderWidth: 1, borderRadius: 10 },
   section: { paddingHorizontal: 4, paddingTop: 18, paddingBottom: 4 },
   add: { marginTop: 16, borderWidth: 1, borderStyle: 'dashed', borderRadius: 12, padding: 18, alignItems: 'center' },
+  sub: { paddingLeft: 24, minHeight: 44 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, minHeight: 52 },
 });

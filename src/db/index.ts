@@ -21,6 +21,8 @@ export function getDb(): Promise<SQLiteDatabase> {
 export type Exercise = {
   id: string;
   name: string;
+  /** Raw name without brand. Present on rows from list queries. */
+  base?: string;
   brand: string;
   primary_muscle: string;
   secondary_muscles: string;

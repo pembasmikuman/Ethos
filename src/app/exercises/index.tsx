@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { allExercises } from '../../db/queries';
 import type { Exercise } from '../../db';
 import { fonts, useTheme } from '../../lib/theme';
+import { groupVariants } from '../../lib/variants';
 import { Doto, Label } from '../../components/Text';
 import { DOCK_HEIGHT } from '../../components/Dock';
 
@@ -16,6 +17,7 @@ export default function Exercises() {
   const insets = useSafeAreaInsets();
   const [all, setAll] = useState<Exercise[]>([]);
   const [q, setQ] = useState('');
+  const [open, setOpen] = useState<string | null>(null);
   const [muscle, setMuscle] = useState('');
   const [gear, setGear] = useState('');
 
@@ -36,6 +38,7 @@ export default function Exercises() {
     </ScrollView>
   );
 
+  const goTo = (e: Exercise) => router.push(`/exercise/${e.id}`);
   let lastMuscle = '';
   return (
     <ScrollView style={{ backgroundColor: t.bg }} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.page, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
@@ -47,17 +50,26 @@ export default function Exercises() {
       {chips(MUSCLES, muscle, setMuscle)}
       {chips(EQUIPMENT, gear, setGear)}
       {list.length === 0 && <Label color={t.dim} style={{ paddingHorizontal: 4, paddingTop: 18 }}>Nothing matches.</Label>}
-      {list.map((e) => {
-        const header = e.primary_muscle !== lastMuscle ? e.primary_muscle : null;
-        lastMuscle = e.primary_muscle;
+      {groupVariants(list).map((g) => {
+        const header = g.muscle !== lastMuscle ? g.muscle : null;
+        lastMuscle = g.muscle;
+        const many = g.items.length > 1;
+        const expanded = open === g.key;
         return (
-          <View key={e.id}>
+          <View key={g.key}>
             {header && <Label style={s.section}>{header}</Label>}
-            <Pressable onPress={() => router.push(`/exercise/${e.id}`)} style={({ pressed }) => [s.row, { borderBottomColor: t.line, opacity: pressed ? 0.7 : 1 }]}>
-              <Doto size={20} style={{ flex: 1 }}>{e.name.toUpperCase()}</Doto>
-              <Label color={t.dim}>{e.equipment}</Label>
-              <Label color={t.dim}>›</Label>
+            <Pressable onPress={() => (many ? setOpen(expanded ? null : g.key) : goTo(g.items[0]))} style={({ pressed }) => [s.row, { borderBottomColor: t.line, opacity: pressed ? 0.7 : 1 }]}>
+              <Doto size={20} style={{ flex: 1 }}>{g.base.toUpperCase()}</Doto>
+              <Label color={many ? t.accent : t.dim}>{many ? `${g.items.length} variants` : g.items[0].equipment}</Label>
+              <Label color={t.dim}>{many ? (expanded ? '▾' : '▸') : '›'}</Label>
             </Pressable>
+            {expanded && g.items.map((e) => (
+              <Pressable key={e.id} onPress={() => goTo(e)} style={({ pressed }) => [s.row, s.sub, { borderBottomColor: t.line, opacity: pressed ? 0.7 : 1 }]}>
+                <Label color={t.accent} style={{ flex: 1 }}>{e.brand || 'no brand'}</Label>
+                <Label color={t.dim}>{e.equipment}</Label>
+                <Label color={t.dim}>›</Label>
+              </Pressable>
+            ))}
           </View>
         );
       })}
@@ -73,5 +85,6 @@ const s = StyleSheet.create({
   chips: { flexDirection: 'row', gap: 8, paddingTop: 10, paddingHorizontal: 2 },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
   section: { paddingHorizontal: 4, paddingTop: 18, paddingBottom: 4 },
+  sub: { paddingLeft: 24, minHeight: 44 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, minHeight: 52 },
 });

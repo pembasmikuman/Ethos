@@ -2,7 +2,7 @@ import * as Crypto from 'expo-crypto';
 import { getDb, type Exercise } from './index';
 
 /** Exercise columns with brand folded into name for display. Use exerciseById for the raw parts. */
-const EX = (a: string) => `${a}.id, CASE WHEN ${a}.brand <> '' THEN ${a}.name || ' · ' || ${a}.brand ELSE ${a}.name END AS name, ${a}.brand, ${a}.primary_muscle, ${a}.secondary_muscles, ${a}.equipment, ${a}.default_rest_seconds, ${a}.target_rep_min, ${a}.target_rep_max, ${a}.increment_kg`;
+const EX = (a: string) => `${a}.id, ${a}.name AS base, CASE WHEN ${a}.brand <> '' THEN ${a}.name || ' · ' || ${a}.brand ELSE ${a}.name END AS name, ${a}.brand, ${a}.primary_muscle, ${a}.secondary_muscles, ${a}.equipment, ${a}.default_rest_seconds, ${a}.target_rep_min, ${a}.target_rep_max, ${a}.increment_kg`;
 
 export type Routine = { id: string; name: string; exercises: number; last_done: string | null };
 export type LoggedSet = {
