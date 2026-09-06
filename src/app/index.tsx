@@ -2,8 +2,9 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { listRoutines, recentSessions, setsSince, type Routine } from '../db/queries';
-import { daysAgo, upNext, weeklyVolume, weekStart } from '../lib/progression';
+import { allSessions, listRoutines, recentSessions, setsSince, strengthLeaders, type Routine } from '../db/queries';
+import { daysAgo, sessionsPerWeek, upNext, weeklyVolume, weekStart } from '../lib/progression';
+import { fmtKg } from '../lib/format';
 import { DotBars } from '../components/DotBars';
 import { DOCK_HEIGHT } from '../components/Dock';
 import { useTheme, useTopInset } from '../lib/theme';
@@ -27,6 +28,10 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const [volume, setVolume] = useState<Record<string, number>>({});
   const [editing, setEditing] = useState(false);
+  const [weeks, setWeeks] = useState<number[]>([]);
+  const [leaders, setLeaders] = useState<Awaited<ReturnType<typeof strengthLeaders>>>([]);
+  const [page, setPage] = useState(0);
+  const [panelW, setPanelW] = useState(0);
   const shown = useUi((s) => s.volumeMuscles);
   const toggle = useUi((s) => s.toggleVolumeMuscle);
 
@@ -35,6 +40,8 @@ export default function Home() {
       listRoutines().then((r) => setRoutines(upNext(r)));
       recentSessions().then(setRecent);
       setsSince(weekStart()).then((rows) => setVolume(weeklyVolume(rows)));
+      allSessions().then((rows) => setWeeks(sessionsPerWeek(rows.map((r) => r.start_time))));
+      strengthLeaders().then(setLeaders);
     }, []),
   );
 
@@ -62,24 +69,65 @@ export default function Home() {
         <Label>{today}</Label>
       </View>
 
-      <View style={[s.panel, { backgroundColor: t.card, borderColor: t.line }]}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <Label>This week · hard sets</Label>
-          <Pressable onPress={() => setEditing((v) => !v)} hitSlop={12}><Label color={editing ? t.accent : t.green}>{editing ? 'Done' : '10–20 band'}</Label></Pressable>
-        </View>
-        <DotBars items={MUSCLES.filter(([, key]) => shown.includes(key)).map(([label, key]) => ({ label, full: FULL[key], value: volume[key] ?? 0 }))} />
-        {editing && (
-          <View style={s.chips}>
-            {MUSCLES.map(([label, key]) => {
-              const on = shown.includes(key);
+      <View onLayout={(e) => setPanelW(e.nativeEvent.layout.width)}>
+        <ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / (panelW + 32)))}
+          style={{ marginHorizontal: -16 }}
+        >
+          <View style={{ width: panelW + 32, paddingHorizontal: 16 }}><View style={[s.panel, { backgroundColor: t.card, borderColor: t.line }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Label>This week · hard sets</Label>
+              <Pressable onPress={() => setEditing((v) => !v)} hitSlop={12}><Label color={editing ? t.accent : t.green}>{editing ? 'Done' : '10–20 band'}</Label></Pressable>
+            </View>
+            <DotBars items={MUSCLES.filter(([, key]) => shown.includes(key)).map(([label, key]) => ({ label, full: FULL[key], value: volume[key] ?? 0 }))} />
+            {editing && (
+              <View style={s.chips}>
+                {MUSCLES.map(([label, key]) => {
+                  const on = shown.includes(key);
+                  return (
+                    <Pressable key={key} onPress={() => toggle(key)} style={[s.chip, { borderColor: on ? t.accent : t.line, backgroundColor: on ? t.accent : 'transparent' }]}>
+                      <Label color={on ? t.bg : t.mute}>{FULL[key]}</Label>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+          </View></View>
+
+          <View style={{ width: panelW + 32, paddingHorizontal: 16 }}><View style={[s.panel, { backgroundColor: t.card, borderColor: t.line }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Label>Sessions · last 8 weeks</Label>
+              <Label color={t.green}>3–5 a week</Label>
+            </View>
+            <DotBars items={weeks.map((v, i) => ({ label: i === weeks.length - 1 ? 'NOW' : `-${weeks.length - 1 - i}W`, value: v }))} max={7} band={[3, 5]} />
+          </View></View>
+
+          <View style={{ width: panelW + 32, paddingHorizontal: 16 }}><View style={[s.panel, { backgroundColor: t.card, borderColor: t.line }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Label>Strength · est. 1RM · 30 days</Label>
+              <Label color={t.dim}>vs prior 30</Label>
+            </View>
+            {leaders.length === 0 && <Label color={t.dim}>Log a few sessions first.</Label>}
+            {leaders.map((l) => {
+              const delta = l.before === null ? null : l.now - l.before;
               return (
-                <Pressable key={key} onPress={() => toggle(key)} style={[s.chip, { borderColor: on ? t.accent : t.line, backgroundColor: on ? t.accent : 'transparent' }]}>
-                  <Label color={on ? t.bg : t.mute}>{FULL[key]}</Label>
+                <Pressable key={l.id} onPress={() => router.push(`/exercise/${l.id}`)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Label style={{ flex: 1 }} numberOfLines={1}>{l.name}</Label>
+                  <Doto size={20}>{fmtKg(Math.round(l.now))}</Doto>
+                  <Label color={delta === null ? t.dim : delta >= 0 ? t.green : t.accent} style={{ width: 52, textAlign: 'right' }}>
+                    {delta === null ? 'new' : `${delta >= 0 ? '+' : ''}${fmtKg(Math.round(delta))}`}
+                  </Label>
                 </Pressable>
               );
             })}
-          </View>
-        )}
+          </View></View>
+        </ScrollView>
+        <View style={s.pageDots}>
+          {[0, 1, 2].map((i) => <View key={i} style={{ width: i === page ? 14 : 6, height: 6, borderRadius: 3, backgroundColor: i === page ? t.accent : t.dim }} />)}
+        </View>
       </View>
 
       <View style={[s.section, { flexDirection: 'row', justifyContent: 'space-between' }]}>
@@ -128,6 +176,7 @@ const s = StyleSheet.create({
   section: { paddingHorizontal: 4, paddingTop: 12, paddingBottom: 4 },
   card: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 18, borderRadius: 16, borderWidth: 1, minHeight: 64 },
   panel: { padding: 16, borderRadius: 16, borderWidth: 1, gap: 12 },
+  pageDots: { flexDirection: 'row', justifyContent: 'center', gap: 6, paddingTop: 10 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, minHeight: 44 },

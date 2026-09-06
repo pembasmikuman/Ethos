@@ -58,3 +58,11 @@ test('daysAgo', () => {
   expect(daysAgo(null)).toBeNull();
   expect(daysAgo('2026-09-01T10:00:00Z', Date.parse('2026-09-04T09:00:00Z'))).toBe(2);
 });
+
+import { sessionsPerWeek } from '../lib/progression';
+
+test('sessionsPerWeek buckets by Monday weeks, oldest first', () => {
+  const now = Date.parse('2026-09-06T12:00:00'); // Sunday
+  const out = sessionsPerWeek(['2026-09-01T10:00:00', '2026-09-06T09:00:00', '2026-08-26T10:00:00', '2026-06-01T10:00:00'], 4, now);
+  expect(out).toEqual([0, 0, 1, 2]);
+});

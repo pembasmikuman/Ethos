@@ -308,3 +308,20 @@ export async function deleteExercise(id: string): Promise<boolean> {
   await db.runAsync('DELETE FROM exercises WHERE id = ?', [id]);
   return true;
 }
+
+/** Best e1RM per exercise in the last 30 days vs the 30 before. Top `n` by current e1RM. */
+export async function strengthLeaders(n = 4): Promise<{ id: string; name: string; now: number; before: number | null }[]> {
+  const db = await getDb();
+  return db.getAllAsync(
+    `WITH e1 AS (
+       SELECT l.exercise_id, l.weight * (1 + (l.reps + COALESCE(l.rir, 0)) / 30.0) AS e1rm,
+              CASE WHEN l.completed_at >= datetime('now', '-30 days') THEN 1 ELSE 0 END AS recent
+       FROM logged_sets l WHERE l.set_type = 'working' AND l.completed_at >= datetime('now', '-60 days')
+     )
+     SELECT e.id, CASE WHEN e.brand <> '' THEN e.name || ' · ' || e.brand ELSE e.name END AS name,
+            MAX(CASE WHEN recent THEN e1rm END) AS now, MAX(CASE WHEN NOT recent THEN e1rm END) AS before
+     FROM e1 JOIN exercises e ON e.id = e1.exercise_id
+     GROUP BY e.id HAVING now IS NOT NULL ORDER BY now DESC LIMIT ?`,
+    [n],
+  );
+}
