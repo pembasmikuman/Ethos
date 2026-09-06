@@ -8,7 +8,9 @@
     "userInterfaceStyle": "automatic",
     "scheme": "ethos",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.shzwn.ethos",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
@@ -36,6 +38,18 @@
           "backgroundColor": "#0A0A0B"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "cfd08b5d-0cc3-43be-96aa-afb9c48ca753"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/cfd08b5d-0cc3-43be-96aa-afb9c48ca753"
+    }
   }
 }

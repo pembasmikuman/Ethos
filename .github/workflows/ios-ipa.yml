@@ -1,0 +1,31 @@
+name: iOS unsigned IPA
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bunx expo prebuild --platform ios --clean
+      - name: Install pods
+        run: cd ios && pod install
+      - name: Build unsigned
+        run: |
+          xcodebuild -workspace ios/Ethos.xcworkspace -scheme Ethos -configuration Release -sdk iphoneos \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            -quiet build
+      - name: Package IPA
+        run: |
+          mkdir -p Payload
+          cp -r build/Build/Products/Release-iphoneos/Ethos.app Payload/
+          zip -qr Ethos.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Ethos.ipa
+          path: Ethos.ipa

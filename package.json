@@ -18,6 +18,7 @@
     "expo-splash-screen": "~57.0.8",
     "expo-sqlite": "~57.0.2",
     "expo-status-bar": "~57.0.1",
+    "expo-updates": "~57.0.21",
     "react": "19.2.3",
     "react-native": "0.86.3",
     "react-native-gesture-handler": "~2.32.0",
@@ -32,6 +33,7 @@
     "@expo/ngrok": "^4.1.0",
     "@types/bun": "^1.4.1",
     "@types/react": "~19.2.2",
+    "eas-cli": "^23.2.0",
     "typescript": "~6.0.3"
   },
   "scripts": {
