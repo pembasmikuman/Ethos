@@ -16,7 +16,10 @@ const SNAP = { damping: 26, stiffness: 320, mass: 1 };
 type DragProps = { index: number; count: number; active: SharedValue<number>; dy: SharedValue<number>; onDrop: (from: number, to: number) => void; onGrab: () => void; children: ReactNode };
 
 function DragRow({ index, count, active, dy, onDrop, onGrab, children }: DragProps) {
-  const clamp = (n: number) => Math.max(0, Math.min(count - 1, n));
+  const clamp = (n: number) => {
+    'worklet';
+    return Math.max(0, Math.min(count - 1, n));
+  };
   const pan = Gesture.Pan()
     .activateAfterLongPress(150)
     .onStart(() => { active.value = index; dy.value = 0; runOnJS(onGrab)(); })
