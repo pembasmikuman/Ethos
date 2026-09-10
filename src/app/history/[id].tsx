@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { deleteSession, deleteSet, sessionById, sessionSets, updateSet, type SessionRow } from '../../db/queries';
@@ -7,6 +7,8 @@ import { useTheme, useTopInset } from '../../lib/theme';
 import { applyKey, fmtKg } from '../../lib/format';
 import { epley1RM, weeklyVolume } from '../../lib/progression';
 import { BodyMap } from '../../components/BodyMap';
+import { addPhoto, deletePhoto, photoUri, sessionPhotos, setSessionNotes, type Photo } from '../../lib/photos';
+import { fonts } from '../../lib/theme';
 import { doneHaptic } from '../../lib/rest';
 import { Doto, Label } from '../../components/Text';
 import { Numpad } from '../../components/Numpad';
@@ -26,10 +28,13 @@ export default function SessionDetail() {
   const [session, setSession] = useState<SessionRow | null>(null);
   const [sets, setSets] = useState<SetRow[]>([]);
   const [edit, setEdit] = useState<Edit | null>(null);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [notes, setNotes] = useState('');
 
   const load = () => {
-    sessionById(id).then(setSession);
+    sessionById(id).then((x) => { setSession(x); setNotes(x?.notes ?? ''); });
     sessionSets(id).then(setSets);
+    sessionPhotos(id).then(setPhotos);
   };
   useEffect(load, [id]);
 
@@ -85,6 +90,18 @@ export default function SessionDetail() {
       { text: 'Delete', style: 'destructive', onPress: async () => { await deleteSet(x.id); setEdit(null); load(); } },
     ]);
 
+  const pickPhoto = () =>
+    Alert.alert('Add photo', undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Camera', onPress: async () => { const p = await addPhoto(id, 'camera'); if (p) setPhotos((xs) => [...xs, p]); } },
+      { text: 'Library', onPress: async () => { const p = await addPhoto(id, 'library'); if (p) setPhotos((xs) => [...xs, p]); } },
+    ]);
+  const confirmDeletePhoto = (p: Photo) =>
+    Alert.alert('Delete photo?', undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => { await deletePhoto(p); setPhotos((xs) => xs.filter((x) => x.id !== p.id)); } },
+    ]);
+
   const confirmDeleteSession = () =>
     Alert.alert('Delete session?', `Removes all ${session.sets} sets.`, [
       { text: 'Cancel', style: 'cancel' },
@@ -116,6 +133,27 @@ export default function SessionDetail() {
         <View style={[st.card, { backgroundColor: t.card, borderColor: t.line }]}>
           <BodyMap load={weeklyVolume(sets)} height={150} />
         </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 4 }}>
+          {photos.map((p) => (
+            <Pressable key={p.id} onLongPress={() => confirmDeletePhoto(p)}>
+              <Image source={{ uri: photoUri(p.file) }} style={[st.photo, { borderColor: t.line }]} />
+            </Pressable>
+          ))}
+          <Pressable onPress={pickPhoto} style={[st.photo, { borderColor: t.line, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' }]}>
+            <Doto size={26} color={t.accent}>+</Doto>
+            <Label color={t.dim} size={10}>photo</Label>
+          </Pressable>
+        </ScrollView>
+        <TextInput
+          value={notes}
+          onChangeText={setNotes}
+          onBlur={() => setSessionNotes(id, notes.trim())}
+          placeholder="How did it go? Notes stay with this session."
+          placeholderTextColor={t.dim}
+          multiline
+          style={[st.notes, { color: t.text, borderColor: t.line, backgroundColor: t.card }]}
+        />
 
         {groups.map((g) => {
           const best = Math.max(...g.sets.filter((x) => x.set_type === 'working').map((x) => epley1RM(x.weight, x.reps, x.rir)), 0);
@@ -170,4 +208,6 @@ const st = StyleSheet.create({
   cell: { flexDirection: 'row', alignItems: 'baseline', gap: 6, paddingVertical: 8 },
   danger: { alignItems: 'center', justifyContent: 'center', minHeight: 56, borderRadius: 14, borderWidth: 1, marginTop: 8 },
   pad: { paddingHorizontal: 16, paddingTop: 8, borderTopWidth: 1 },
+  photo: { width: 96, height: 96, borderRadius: 12, borderWidth: 1 },
+  notes: { fontFamily: fonts.mono, fontSize: 14, lineHeight: 20, minHeight: 72, padding: 12, borderRadius: 12, borderWidth: 1, textAlignVertical: 'top' },
 });

@@ -80,6 +80,15 @@ const MIGRATIONS: string[] = [
   UPDATE exercises SET load = 'bodyweight' WHERE id IN ('pullup', 'dips', 'leg-raise');
   UPDATE exercises SET per_side = 1 WHERE id IN ('split-squat', 'db-row');
   `,
+  // Photos attached to a session. File lives in Paths.document/photos/<id>.jpg; row keeps the name.
+  `
+  CREATE TABLE session_photos (
+    id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL REFERENCES workout_sessions(id) ON DELETE CASCADE,
+    file TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  `,
 ];
 
 export async function migrate(db: SQLiteDatabase): Promise<void> {

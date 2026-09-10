@@ -41,7 +41,7 @@ export default function History() {
           <Pressable key={r.id} onPress={() => router.push(`/history/${r.id}`)} onLongPress={() => confirmDelete(r)} style={({ pressed }) => [s.row, { borderBottomColor: t.line, opacity: pressed ? 0.7 : 1 }]}>
             <View style={{ flex: 1, gap: 4 }}>
               <Doto size={22}>{r.title.toUpperCase()}</Doto>
-              <Label color={t.dim}>{date}</Label>
+              <Label color={t.dim}>{date}{r.photos ? ` · ${r.photos} photo${r.photos > 1 ? 's' : ''}` : ''}{r.notes ? ` · ${r.notes.split('\n')[0].slice(0, 40)}` : ''}</Label>
             </View>
             <Label>{mins} min</Label>
             <Label>{r.sets} sets</Label>

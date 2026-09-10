@@ -36,7 +36,7 @@ export default function Session() {
   const finish = () => started ? Alert.alert('End session?', `${done} of ${total} sets logged.`, [
       { text: 'Keep going', style: 'cancel' },
       { text: 'Cancel session', style: 'destructive', onPress: async () => { await w.cancel(); router.dismissTo('/'); } },
-      { text: 'Finish', onPress: async () => { await w.finish(); router.dismissTo('/'); } },
+      { text: 'Finish', onPress: async () => { const id = await w.finish(); router.dismissTo('/'); if (id) router.push(`/history/${id}`); } },
     ]) : (w.cancel(), router.dismissTo('/'));
   const done = w.blocks.reduce((n, b) => n + b.sets.filter((x) => x.done).length, 0);
   const total = w.blocks.reduce((n, b) => n + b.sets.length, 0);

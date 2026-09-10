@@ -35,7 +35,7 @@ type State = {
   completeSet: () => Promise<void>;
   adjustRest: (deltaSeconds: number) => Promise<void>;
   skipRest: () => Promise<void>;
-  finish: () => Promise<void>;
+  finish: () => Promise<string | null>;
   cancel: () => Promise<void>;
 };
 
@@ -205,5 +205,6 @@ export const useWorkout = create<State>((set, get) => ({
     await cancelRestDone(rest?.notifId ?? null);
     if (sessionId) await finishSession(sessionId);
     set({ sessionId: null, routine: null, blocks: [], rest: null });
+    return sessionId;
   },
 }));

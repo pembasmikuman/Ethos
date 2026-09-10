@@ -124,14 +124,15 @@ export async function deleteSession(sessionId: string): Promise<void> {
   await db.runAsync('DELETE FROM workout_sessions WHERE id = ?', [sessionId]);
 }
 
-export type SessionRow = { id: string; title: string; start_time: string; end_time: string | null; sets: number; volume_kg: number };
+export type SessionRow = { id: string; title: string; start_time: string; end_time: string | null; notes?: string | null; photos?: number; sets: number; volume_kg: number };
 
 export async function allSessions(): Promise<SessionRow[]> {
   const db = await getDb();
   return db.getAllAsync<SessionRow>(
-    `SELECT s.id, s.title, s.start_time, s.end_time,
+    `SELECT s.id, s.title, s.start_time, s.end_time, s.notes,
        (SELECT COUNT(*) FROM logged_sets l WHERE l.session_id = s.id AND l.set_type = 'working') AS sets,
-       (SELECT COALESCE(SUM(weight * reps), 0) FROM logged_sets l WHERE l.session_id = s.id AND l.set_type = 'working') AS volume_kg
+       (SELECT COALESCE(SUM(weight * reps), 0) FROM logged_sets l WHERE l.session_id = s.id AND l.set_type = 'working') AS volume_kg,
+       (SELECT COUNT(*) FROM session_photos p WHERE p.session_id = s.id) AS photos
      FROM workout_sessions s WHERE s.end_time IS NOT NULL ORDER BY s.start_time DESC`,
   );
 }
@@ -139,7 +140,7 @@ export async function allSessions(): Promise<SessionRow[]> {
 export async function sessionById(id: string): Promise<SessionRow | null> {
   const db = await getDb();
   return db.getFirstAsync<SessionRow>(
-    `SELECT s.id, s.title, s.start_time, s.end_time,
+    `SELECT s.id, s.title, s.start_time, s.end_time, s.notes,
        (SELECT COUNT(*) FROM logged_sets l WHERE l.session_id = s.id AND l.set_type = 'working') AS sets,
        (SELECT COALESCE(SUM(weight * reps), 0) FROM logged_sets l WHERE l.session_id = s.id AND l.set_type = 'working') AS volume_kg
      FROM workout_sessions s WHERE s.id = ?`,

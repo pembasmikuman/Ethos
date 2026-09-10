@@ -2,15 +2,17 @@ import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import { getDb } from '../db';
+import { readPhotoFiles, writePhotoFiles, type Photo } from './photos';
 
-const TABLES = ['exercises', 'routines', 'routine_exercises', 'workout_sessions', 'logged_sets'] as const;
+const TABLES = ['exercises', 'routines', 'routine_exercises', 'workout_sessions', 'logged_sets', 'session_photos'] as const;
 
-export type Backup = { app: 'ethos'; version: 1; exported_at: string } & Record<(typeof TABLES)[number], Record<string, unknown>[]>;
+export type Backup = { app: 'ethos'; version: 1; exported_at: string; /** Photo file name -> base64 JPEG. */ photo_files?: Record<string, string> } & Record<(typeof TABLES)[number], Record<string, unknown>[]>;
 
 export async function dumpBackup(): Promise<Backup> {
   const db = await getDb();
   const out: Record<string, unknown> = { app: 'ethos', version: 1, exported_at: new Date().toISOString() };
   for (const t of TABLES) out[t] = await db.getAllAsync(`SELECT * FROM ${t}`);
+  out.photo_files = readPhotoFiles(out.session_photos as Photo[]);
   return out as Backup;
 }
 
@@ -48,6 +50,7 @@ export async function restoreBackup(b: Backup): Promise<void> {
       }
     }
   });
+  if (b.photo_files) writePhotoFiles(b.photo_files);
 }
 
 export function backupSummary(b: Backup): string {
