@@ -5,7 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { deleteSession, deleteSet, sessionById, sessionSets, updateSet, type SessionRow } from '../../db/queries';
 import { useTheme, useTopInset } from '../../lib/theme';
 import { applyKey, fmtKg } from '../../lib/format';
-import { epley1RM } from '../../lib/progression';
+import { epley1RM, weeklyVolume } from '../../lib/progression';
+import { BodyMap } from '../../components/BodyMap';
 import { doneHaptic } from '../../lib/rest';
 import { Doto, Label } from '../../components/Text';
 import { Numpad } from '../../components/Numpad';
@@ -111,6 +112,9 @@ export default function SessionDetail() {
           <Doto size={34}>{session.title.toUpperCase()}</Doto>
           <Label>{date} · {mins} min · {session.sets} sets · {fmtKg(Math.round(session.volume_kg))} kg</Label>
           <Label color={t.dim}>Tap a number to edit · hold a set to delete</Label>
+        </View>
+        <View style={[st.card, { backgroundColor: t.card, borderColor: t.line }]}>
+          <BodyMap load={weeklyVolume(sets)} height={150} />
         </View>
 
         {groups.map((g) => {

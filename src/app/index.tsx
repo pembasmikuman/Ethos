@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback, useState, type ReactNode } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Redirect, router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { allSessions, listRoutines, recentSessions, setsSince, type Routine } from '../db/queries';
@@ -10,7 +10,7 @@ import { BodyMap } from '../components/BodyMap';
 import { DOCK_HEIGHT } from '../components/Dock';
 import { useTheme, useTopInset } from '../lib/theme';
 import { useWorkout } from '../store/workout';
-import { useUi } from '../store/ui';
+import { useUi, type Panel } from '../store/ui';
 import { Doto, Label } from '../components/Text';
 
 const MUSCLES: [string, string][] = [['CHEST', 'chest'], ['BACK', 'back'], ['QUAD', 'quads'], ['HAM', 'hamstrings'], ['GLUTE', 'glutes'], ['DELT', 'delts'], ['BI', 'biceps'], ['TRI', 'triceps'], ['CALF', 'calves'], ['ABS', 'abs']];
@@ -33,6 +33,8 @@ export default function Home() {
   const [page, setPage] = useState(0);
   const [panelW, setPanelW] = useState(0);
   const shown = useUi((s) => s.volumeMuscles);
+  const panelOrder = useUi((s) => s.panelOrder);
+  const movePanel = useUi((s) => s.movePanel);
   const onboarded = useUi((s) => s.onboarded);
   const toggle = useUi((s) => s.toggleVolumeMuscle);
 
@@ -64,23 +66,18 @@ export default function Home() {
   const nextId = upNext(routines)[0]?.id;
   const today = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' });
 
-  return (
-    <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={[s.page, { paddingTop: top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
-      <View style={s.head}>
-        <Doto size={40}>ETHOS</Doto>
-        <Label>{today}</Label>
-      </View>
+  const movePanelMenu = (key: Panel) => {
+    const i = panelOrder.indexOf(key);
+    Alert.alert('Move panel', undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      ...(i > 0 ? [{ text: 'Move left', onPress: () => movePanel(key, -1 as const) }] : []),
+      ...(i < panelOrder.length - 1 ? [{ text: 'Move right', onPress: () => movePanel(key, 1 as const) }] : []),
+    ]);
+  };
 
-      <View onLayout={(e) => setPanelW(e.nativeEvent.layout.width)}>
-        <ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onMomentumScrollEnd={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / (panelW + 32)))}
-          style={{ marginHorizontal: -16 }}
-          contentContainerStyle={{ alignItems: 'stretch' }}
-        >
-          <View style={{ width: panelW + 32, paddingHorizontal: 16 }}><View style={[s.panel, { flex: 1, backgroundColor: t.card, borderColor: t.line }]}>
+  const panels: Record<Panel, ReactNode> = {
+    volume: (
+      <>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <Label>This week · hard sets</Label>
               <Pressable onPress={() => setEditing((v) => !v)} hitSlop={12}><Label color={editing ? t.accent : t.green}>{editing ? 'Done' : '10–20 band'}</Label></Pressable>
@@ -98,26 +95,57 @@ export default function Home() {
                 })}
               </View>
             )}
-          </View></View>
-
-          <View style={{ width: panelW + 32, paddingHorizontal: 16 }}><View style={[s.panel, { flex: 1, backgroundColor: t.card, borderColor: t.line }]}>
+          
+      </>
+    ),
+    days: (
+      <>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <Label>Training days · year</Label>
               <Label color={t.green}>{heat.cols[heat.cols.length - 1]?.filter((c) => c.level > 0).length ?? 0} this week · {heat.cols.flat().filter((c) => c.level > 0).length} total</Label>
             </View>
             <Heatmap cols={heat.cols} months={heat.months} />
-          </View></View>
-
-          <View style={{ width: panelW + 32, paddingHorizontal: 16 }}><View style={[s.panel, { flex: 1, backgroundColor: t.card, borderColor: t.line }]}>
+          
+      </>
+    ),
+    map: (
+      <>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <Label>This week · muscle map</Label>
               <Label color={t.dim}>{MUSCLES.filter(([, k]) => !(volume[k] ?? 0)).map(([l]) => l).join(' ').toLowerCase() || 'all hit'}</Label>
             </View>
             <BodyMap load={volume} height={190} />
-          </View></View>
+          
+      </>
+    ),
+  };
+
+  return (
+    <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={[s.page, { paddingTop: top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + 12 }]}>
+      <View style={s.head}>
+        <Doto size={40}>ETHOS</Doto>
+        <Label>{today}</Label>
+      </View>
+
+      <View onLayout={(e) => setPanelW(e.nativeEvent.layout.width)}>
+        <ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / (panelW + 32)))}
+          style={{ marginHorizontal: -16 }}
+          contentContainerStyle={{ alignItems: 'stretch' }}
+        >
+          {panelOrder.map((key) => (
+            <View key={key} style={{ width: panelW + 32, paddingHorizontal: 16 }}>
+              <Pressable onLongPress={() => movePanelMenu(key)} delayLongPress={350} style={[s.panel, { flex: 1, backgroundColor: t.card, borderColor: t.line }]}>
+                {panels[key]}
+              </Pressable>
+            </View>
+          ))}
         </ScrollView>
         <View style={s.pageDots}>
-          {[0, 1, 2].map((i) => <View key={i} style={{ width: i === page ? 14 : 6, height: 6, borderRadius: 3, backgroundColor: i === page ? t.accent : t.dim }} />)}
+          {panelOrder.map((_, i) => i).map((i) => <View key={i} style={{ width: i === page ? 14 : 6, height: 6, borderRadius: 3, backgroundColor: i === page ? t.accent : t.dim }} />)}
         </View>
       </View>
 
