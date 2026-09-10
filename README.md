@@ -14,7 +14,7 @@ Built for one person, one gym bag. Logs sets fast, suggests the next weight, buz
 - **Progression rule per exercise.** Double progression (default), linear, or Greyskull LP. Every pre-filled weight says why. Bodyweight moves progress in reps, timed moves log seconds, per-side moves show the split.
 - **Rest timer** as a local notification plus haptic. Survives backgrounding.
 - **Moves** grouped by movement, variants per equipment and machine brand. Each variant keeps its own history and est. 1RM trend.
-- **Library** of 1,200+ exercises with step instructions. Search it from the picker or the new-exercise form. See [docs/NOTICE.md](docs/NOTICE.md).
+- **Library** of 1,200+ exercises with step instructions. Search it from the picker or the new-exercise form. Animated demos on the detail screen. See [docs/NOTICE.md](docs/NOTICE.md).
 - **Home** carousel: weekly hard sets per muscle against the 10–20 band, training days grid, front and back muscle map shaded by this week's work.
 - **History** with edit and delete. **Backup** to JSON via the share sheet, restore from Files.
 - Dark and light.
@@ -24,6 +24,12 @@ Built for one person, one gym bag. Logs sets fast, suggests the next weight, buz
 Expo SDK 57, Expo Router, TypeScript, expo-sqlite, Zustand, Reanimated, plain StyleSheet. Everything runs in Expo Go. `bun` only.
 
 ## Run
+
+Once, to get the exercise animations (115 MB, not in git, CI fetches them itself):
+
+```
+./scripts/fetch-media.sh
+```
 
 ```
 bun install

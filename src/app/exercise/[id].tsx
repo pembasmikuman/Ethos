@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Exercise } from '../../db';
@@ -12,6 +12,7 @@ import { Doto, Label } from '../../components/Text';
 import { DotTrend } from '../../components/DotTrend';
 import { DOCK_HEIGHT } from '../../components/Dock';
 import { libraryEntry } from '../../lib/library';
+import { MEDIA } from '../../data/media';
 import type { Progression } from '../../db';
 
 const RULES: [Progression, string][] = [['double', 'double'], ['linear', 'linear'], ['greyskull', 'greyskull']];
@@ -73,6 +74,7 @@ export default function ExerciseDetail() {
     ]);
 
   const steps = libraryEntry(ex.library_id)?.steps ?? [];
+  const gif = MEDIA[ex.library_id];
   const best = hist.map((h) => Math.round(Math.max(...h.sets.map((x) => epley1RM(x.weight, x.reps, x.rir ?? 0))))).reverse();
 
   return (
@@ -112,6 +114,7 @@ export default function ExerciseDetail() {
       {(ex.load !== 'weight' || ex.per_side === 1) && <Label color={t.dim} style={{ paddingHorizontal: 4, paddingTop: 10 }}>{[ex.load === 'bodyweight' ? 'bodyweight, progress in reps' : ex.load === 'time' ? 'timed, seconds instead of reps' : '', ex.per_side === 1 ? 'reps per side' : ''].filter(Boolean).join(' · ')}</Label>}
 
       {steps.length > 0 && <Label style={s.section}>How</Label>}
+      {gif && <Image source={gif} resizeMode="contain" style={[s.gif, { backgroundColor: '#FFFFFF', borderColor: t.line }]} />}
       {steps.map((st, i) => (
         <View key={i} style={{ flexDirection: 'row', gap: 10, paddingHorizontal: 4, paddingVertical: 6 }}>
           <Doto size={14} color={t.accent}>{String(i + 1).padStart(2, '0')}</Doto>
@@ -133,6 +136,7 @@ export default function ExerciseDetail() {
 
 const s = StyleSheet.create({
   page: { paddingHorizontal: 16 },
+  gif: { width: '100%', aspectRatio: 1, borderRadius: 14, borderWidth: 1, marginTop: 4 },
   panel: { marginTop: 18, borderWidth: 1, borderRadius: 14, padding: 16, gap: 14 },
   section: { paddingHorizontal: 4, paddingTop: 22, paddingBottom: 6 },
   setting: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 4, borderBottomWidth: 1, height: 56 },

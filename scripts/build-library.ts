@@ -26,8 +26,8 @@ const EQUIP: Record<string, string> = {
   'leverage machine': 'machine', 'sled machine': 'machine', 'smith machine': 'machine',
 };
 
-type Src = { id: string; n: string; eq: string; tg: string; sm: string[]; st: string[] };
-export type LibraryEntry = { id: string; name: string; muscle: string; secondary: string; equipment: string; steps: string[] };
+type Src = { id: string; n: string; eq: string; tg: string; sm: string[]; st: string[]; gif: string };
+export type LibraryEntry = { id: string; name: string; muscle: string; secondary: string; equipment: string; steps: string[]; gif: string };
 
 export function convert(src: Src[]): LibraryEntry[] {
   const out: LibraryEntry[] = [];
@@ -36,7 +36,7 @@ export function convert(src: Src[]): LibraryEntry[] {
     const equipment = EQUIP[e.eq];
     if (!muscle || !equipment) continue;
     const secondary = [...new Set(e.sm.map((m) => SECONDARY[m]).filter((m) => m && m !== muscle))].join(',');
-    out.push({ id: e.id, name: e.n.replace(/\b\w/g, (c) => c.toUpperCase()), muscle, secondary, equipment, steps: e.st });
+    out.push({ id: e.id, name: e.n.replace(/\b\w/g, (c) => c.toUpperCase()), muscle, secondary, equipment, steps: e.st, gif: e.gif });
   }
   return out.sort((a, b) => a.name.localeCompare(b.name));
 }

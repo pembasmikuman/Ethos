@@ -1,6 +1,6 @@
 import data from '../data/library.json';
 
-export type LibraryEntry = { id: string; name: string; muscle: string; secondary: string; equipment: string; steps: string[] };
+export type LibraryEntry = { id: string; name: string; muscle: string; secondary: string; equipment: string; steps: string[]; gif: string };
 
 export const LIBRARY = data as LibraryEntry[];
 
