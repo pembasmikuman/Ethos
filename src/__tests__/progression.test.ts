@@ -87,3 +87,19 @@ test('sessionGrid places sessions by week row and weekday column', () => {
   expect(g[1]).toEqual([0, 0, 1, 0, 0, 0, 0]); // Wed last week
   expect(g[0]).toEqual([0, 0, 0, 0, 0, 0, 0]);
 });
+
+test('heatmap: 53 columns, levels by minutes, today marked', () => {
+  const { heatmap } = require('../lib/progression');
+  const now = new Date('2026-09-10T15:00:00').getTime();
+  const ses = (day: string, min: number) => ({ start_time: `${day}T10:00:00`, end_time: `${day}T10:${String(min).padStart(2, '0')}:00` });
+  const { cols, months } = heatmap([ses('2026-09-10', 45), ses('2026-09-08', 20), ses('2026-09-07', 59)], 53, now);
+  expect(cols.length).toBe(53);
+  expect(months.filter(Boolean).length).toBeGreaterThan(10);
+  const last = cols[52];
+  expect(last[0].key).toBe('2026-09-07');
+  expect(last[3].today).toBe(true);
+  expect(last[3].level).toBeGreaterThan(last[1].level);
+  expect(last[0].level).toBe(4);
+  expect(last[6].future).toBe(true);
+  expect(last[4].level).toBe(0);
+});

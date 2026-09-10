@@ -129,3 +129,53 @@ export function sessionGrid(startTimes: string[], weeks = 6, now = Date.now()): 
   }
   return grid;
 }
+
+export type HeatCell = { key: string; level: 0 | 1 | 2 | 3 | 4; minutes: number; count: number; today: boolean; future: boolean };
+
+/**
+ * GitHub-style year heatmap. `weeks` columns ending in the current week, Mon..Sun rows.
+ * Level 1..4 by minutes trained that day against quartiles of all trained days; 0 = rest.
+ * Also returns a month label per column where a month starts.
+ */
+export function heatmap(sessions: { start_time: string; end_time: string | null }[], weeks = 53, now = Date.now()): { cols: HeatCell[][]; months: string[] } {
+  const agg: Record<string, { minutes: number; count: number }> = {};
+  const dayKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  for (const s of sessions) {
+    const start = new Date(s.start_time);
+    const k = dayKey(start);
+    const a = (agg[k] ??= { minutes: 0, count: 0 });
+    a.count += 1;
+    a.minutes += Math.max(0, Math.round((new Date(s.end_time ?? s.start_time).getTime() - start.getTime()) / 60000));
+  }
+  const mins = Object.values(agg).map((a) => a.minutes).filter((m) => m > 0).sort((a, b) => a - b);
+  const q = (p: number) => (mins.length ? mins[Math.min(mins.length - 1, Math.floor(p * mins.length))] : 0);
+  const [t1, t2, t3] = [q(0.25), q(0.5), q(0.75)];
+  const level = (a?: { minutes: number }): HeatCell['level'] => (!a ? 0 : !a.minutes ? 1 : a.minutes >= t3 ? 4 : a.minutes >= t2 ? 3 : a.minutes >= t1 ? 2 : 1);
+
+  const today = new Date(now);
+  today.setHours(12, 0, 0, 0);
+  const todayKey = dayKey(today);
+  const start = new Date(today);
+  start.setDate(today.getDate() - ((today.getDay() + 6) % 7) - (weeks - 1) * 7);
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const cols: HeatCell[][] = [];
+  const months: string[] = [];
+  let lastMonth = -1;
+  for (let w = 0; w < weeks; w++) {
+    const colStart = new Date(start);
+    colStart.setDate(start.getDate() + w * 7);
+    const mo = colStart.getMonth();
+    months.push(mo !== lastMonth && colStart.getDate() <= 7 && w < weeks - 1 ? MONTHS[mo] : '');
+    if (colStart.getDate() <= 7) lastMonth = mo;
+    const cells: HeatCell[] = [];
+    for (let d = 0; d < 7; d++) {
+      const day = new Date(colStart);
+      day.setDate(colStart.getDate() + d);
+      const key = dayKey(day);
+      const a = agg[key];
+      cells.push({ key, level: level(a), minutes: a?.minutes ?? 0, count: a?.count ?? 0, today: key === todayKey, future: day > today });
+    }
+    cols.push(cells);
+  }
+  return { cols, months };
+}

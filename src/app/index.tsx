@@ -3,7 +3,8 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Redirect, router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { allSessions, listRoutines, recentSessions, setsSince, type Routine } from '../db/queries';
-import { daysAgo, sessionGrid, upNext, weeklyVolume, weekStart } from '../lib/progression';
+import { daysAgo, heatmap, upNext, weeklyVolume, weekStart } from '../lib/progression';
+import { Heatmap } from '../components/Heatmap';
 import { DotBars } from '../components/DotBars';
 import { BodyMap } from '../components/BodyMap';
 import { DOCK_HEIGHT } from '../components/Dock';
@@ -28,7 +29,7 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const [volume, setVolume] = useState<Record<string, number>>({});
   const [editing, setEditing] = useState(false);
-  const [grid, setGrid] = useState<number[][]>([]);
+  const [heat, setHeat] = useState<ReturnType<typeof heatmap>>({ cols: [], months: [] });
   const [page, setPage] = useState(0);
   const [panelW, setPanelW] = useState(0);
   const shown = useUi((s) => s.volumeMuscles);
@@ -40,7 +41,7 @@ export default function Home() {
       listRoutines().then(setRoutines);
       recentSessions().then(setRecent);
       setsSince(weekStart()).then((rows) => setVolume(weeklyVolume(rows)));
-      allSessions().then((rows) => setGrid(sessionGrid(rows.map((r) => r.start_time))));
+      allSessions().then((rows) => setHeat(heatmap(rows)));
     }, []),
   );
 
@@ -101,31 +102,10 @@ export default function Home() {
 
           <View style={{ width: panelW + 32, paddingHorizontal: 16 }}><View style={[s.panel, { flex: 1, backgroundColor: t.card, borderColor: t.line }]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Label>Training days · 6 weeks</Label>
-              <Label color={t.green}>{grid[grid.length - 1]?.filter(Boolean).length ?? 0} this week</Label>
+              <Label>Training days · year</Label>
+              <Label color={t.green}>{heat.cols[heat.cols.length - 1]?.filter((c) => c.level > 0).length ?? 0} this week · {heat.cols.flat().filter((c) => c.level > 0).length} total</Label>
             </View>
-            <View style={{ gap: 8 }}>
-              <View style={s.gridRow}>
-                <Label color={t.dim} style={{ width: 44 }} />
-                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => <Label key={i} color={t.dim} style={s.gridCell}>{d}</Label>)}
-              </View>
-              {grid.map((week, wi) => {
-                const last = wi === grid.length - 1;
-                return (
-                  <View key={wi} style={s.gridRow}>
-                    <Label color={last ? t.text : t.dim} style={{ width: 44 }}>{last ? 'now' : `-${grid.length - 1 - wi}w`}</Label>
-                    {week.map((n, di) => {
-                      const future = last && di > (new Date().getDay() + 6) % 7;
-                      return (
-                        <View key={di} style={s.gridCell}>
-                          <View style={{ width: n ? 10 : 5, height: n ? 10 : 5, borderRadius: 5, backgroundColor: n ? t.green : future ? 'transparent' : t.dim, borderWidth: future ? 1 : 0, borderColor: t.line }} />
-                        </View>
-                      );
-                    })}
-                  </View>
-                );
-              })}
-            </View>
+            <Heatmap cols={heat.cols} months={heat.months} />
           </View></View>
 
           <View style={{ width: panelW + 32, paddingHorizontal: 16 }}><View style={[s.panel, { flex: 1, backgroundColor: t.card, borderColor: t.line }]}>
@@ -190,8 +170,6 @@ const s = StyleSheet.create({
   day: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, borderWidth: 1, minHeight: 56 },
   panel: { padding: 16, borderRadius: 16, borderWidth: 1, gap: 12 },
   pageDots: { flexDirection: 'row', justifyContent: 'center', gap: 6, paddingTop: 10 },
-  gridRow: { flexDirection: 'row', alignItems: 'center' },
-  gridCell: { flex: 1, alignItems: 'center', justifyContent: 'center', textAlign: 'center', height: 16 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, minHeight: 44 },
