@@ -7,6 +7,7 @@ import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
 import { EXERCISES as SEED } from '../src/db/seed';
+import { LIBRARY, type LibraryEntry } from '../src/lib/library';
 
 const dir = process.argv[2];
 const out = process.argv[3] ?? 'ethos_backup_from_daily_strength.json';
@@ -27,7 +28,33 @@ const MUSCLE: Record<string, string> = {
   biceps: 'biceps', 'biceps long head': 'biceps', 'biceps short head': 'biceps', brachialis: 'biceps',
   triceps: 'triceps', 'triceps lateral head': 'triceps', 'triceps long head': 'triceps',
   abs: 'abs', 'upper abs': 'abs', 'lower abs': 'abs', obliques: 'abs',
+  abductors: 'glutes', adductors: 'quads', 'hip flexors': 'abs', forearms: 'biceps',
 };
+const VOCAB = new Set(['chest', 'back', 'quads', 'hamstrings', 'glutes', 'delts', 'biceps', 'triceps', 'calves', 'abs']);
+
+// Closest library entry by shared name words. Null when fewer than half the words match.
+const STOP = new Set(['machine', 'the', 'with', 'and', 'seated', 'standing']);
+const words = (n: string) => n.toLowerCase().replace(/[()\-]/g, ' ').split(/\s+/).filter((w) => w && !STOP.has(w)).map((w) => w.replace(/s$/, ''));
+// Hand-picked where word overlap picks wrong. '' = no library entry.
+const PICK: Record<string, string> = {
+  'face pull': '0233', 'hip thrust machine': '2286', 'cable rdl': '0228', 'scapula pull ups': '0688',
+  'resistance band hip flexion': '', 'thigh abductor': '0597', 'thigh adductor': '0598', 'butterfly machine (pec deck)': '0596',
+  'stiff legged barbell deadlift': '0116', 'leg press': '0739', 'wide grip lat pull down': '0150', 'cable bicep curl': '0868',
+  'cable triceps pushdown': '0201', 'seated triceps dip machine': '1451', 'kneeling ab wheel rollout': '0857', 'hip flexor stretch': '',
+};
+function matchLibrary(name: string, eq: string): LibraryEntry | null {
+  const picked = PICK[name.toLowerCase()];
+  if (picked !== undefined) return LIBRARY.find((e) => e.id === picked) ?? null;
+  const mine = words(name);
+  let best: LibraryEntry | null = null, score = 0;
+  for (const e of LIBRARY) {
+    const theirs = words(e.name);
+    const hit = mine.filter((w) => theirs.includes(w)).length;
+    const sc = hit / Math.max(mine.length, theirs.length) + (e.equipment === eq ? 0.15 : 0);
+    if (hit >= Math.ceil(mine.length / 2) && sc > score) { best = e; score = sc; }
+  }
+  return best;
+}
 const muscle = (n: string) => MUSCLE[n.toLowerCase()] ?? n.toLowerCase().replace(/\s+/g, '_');
 
 function equipment(e: DsExercise): string {
@@ -92,14 +119,23 @@ for (const w of byName.values()) {
 }
 
 const exercises: Record<string, unknown>[] = [];
+const matches: string[] = [];
 for (const { ex, rests, mins, maxs } of used.values()) {
   const eq = equipment(ex);
   const min = mode(mins, 8), max = Math.max(min + 1, mode(maxs, 12));
+  const lib = matchLibrary(ex.name, eq);
+  let primary = muscle(ex.primaryMuscleGroups[0]?.name ?? 'other');
+  if (!VOCAB.has(primary)) primary = lib?.muscle ?? 'abs';
+  const secondary = [...new Set([...ex.secondaryMuscleGroups.map((m) => muscle(m.name)), ...(lib?.secondary.split(',') ?? [])])].filter((m) => VOCAB.has(m) && m !== primary);
+  matches.push(`${ex.name.padEnd(40)} -> ${lib ? lib.name : '(none)'}`);
   exercises.push({
     id: ex.id, name: ex.name, brand: '', movement: '',
-    primary_muscle: muscle(ex.primaryMuscleGroups[0]?.name ?? 'other'),
-    secondary_muscles: [...new Set(ex.secondaryMuscleGroups.map((m) => muscle(m.name)))].join(','),
+    primary_muscle: primary,
+    secondary_muscles: secondary.join(','),
     equipment: eq,
+    library_id: lib?.id ?? '',
+    load: eq === 'bodyweight' ? 'bodyweight' : 'weight',
+    per_side: /one arm|single|bulgarian|lunge|one leg/i.test(ex.name) ? 1 : 0,
     default_rest_seconds: mode(rests, 120),
     target_rep_min: min, target_rep_max: max,
     increment_kg: eq === 'dumbbell' ? 2 : eq === 'machine' ? 5 : 2.5,
@@ -140,4 +176,5 @@ for (const s of sessions) {
 
 const backup = { app: 'ethos', version: 1, exported_at: new Date().toISOString(), exercises, routines, routine_exercises, workout_sessions, logged_sets };
 writeFileSync(out, JSON.stringify(backup));
+if (process.env.VERBOSE) console.log(matches.join("\n"));
 console.log(`${out}: ${exercises.length} exercises (${used.size} imported), ${routines.length} routines, ${workout_sessions.length} sessions, ${logged_sets.length} sets`);

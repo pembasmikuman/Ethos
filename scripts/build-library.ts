@@ -36,7 +36,7 @@ export function convert(src: Src[]): LibraryEntry[] {
     const equipment = EQUIP[e.eq];
     if (!muscle || !equipment) continue;
     const secondary = [...new Set(e.sm.map((m) => SECONDARY[m]).filter((m) => m && m !== muscle))].join(',');
-    out.push({ id: e.id, name: e.n.replace(/\b\w/g, (c) => c.toUpperCase()), muscle, secondary, equipment, steps: e.st, gif: e.gif });
+    out.push({ id: e.id, name: e.n.replace(/в°/g, "°").replace(/\b\w/g, (c) => c.toUpperCase()), muscle, secondary, equipment, steps: e.st, gif: e.gif });
   }
   return out.sort((a, b) => a.name.localeCompare(b.name));
 }
