@@ -121,9 +121,10 @@ for (const w of byName.values()) {
 const exercises: Record<string, unknown>[] = [];
 const matches: string[] = [];
 for (const { ex, rests, mins, maxs } of used.values()) {
-  const eq = equipment(ex);
+  let eq = equipment(ex);
   const min = mode(mins, 8), max = Math.max(min + 1, mode(maxs, 12));
   const lib = matchLibrary(ex.name, eq);
+  if (eq === 'bodyweight' && lib && lib.equipment !== 'bodyweight') eq = lib.equipment; // Daily Strength left equipment blank
   let primary = muscle(ex.primaryMuscleGroups[0]?.name ?? 'other');
   if (!VOCAB.has(primary)) primary = lib?.muscle ?? 'abs';
   const secondary = [...new Set([...ex.secondaryMuscleGroups.map((m) => muscle(m.name)), ...(lib?.secondary.split(',') ?? [])])].filter((m) => VOCAB.has(m) && m !== primary);
