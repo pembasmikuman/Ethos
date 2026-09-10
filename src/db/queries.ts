@@ -151,8 +151,8 @@ export async function sessionById(id: string): Promise<SessionRow | null> {
 /** Sets of a session with exercise names, in logged order. */
 export async function sessionSets(sessionId: string) {
   const db = await getDb();
-  return db.getAllAsync<LoggedSet & { name: string; target_rep_max: number; primary_muscle: string; secondary_muscles: string }>(
-    `SELECT l.*, CASE WHEN e.brand <> '' THEN e.name || ' · ' || e.brand ELSE e.name END AS name, e.target_rep_max, e.primary_muscle, e.secondary_muscles FROM logged_sets l JOIN exercises e ON e.id = l.exercise_id
+  return db.getAllAsync<LoggedSet & { name: string; target_rep_max: number; primary_muscle: string; secondary_muscles: string; notes: string }>(
+    `SELECT l.*, CASE WHEN e.brand <> '' THEN e.name || ' · ' || e.brand ELSE e.name END AS name, e.target_rep_max, e.primary_muscle, e.secondary_muscles, e.notes FROM logged_sets l JOIN exercises e ON e.id = l.exercise_id
      WHERE l.session_id = ? ORDER BY l.completed_at`,
     [sessionId],
   );

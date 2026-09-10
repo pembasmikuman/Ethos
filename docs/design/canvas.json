@@ -63,6 +63,22 @@
       "w": 390,
       "h": 844,
       "title": "Welcome · light"
+    },
+    {
+      "file": "Session.dc.html",
+      "x": 1920,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Session · dark"
+    },
+    {
+      "file": "SessionLight.dc.html",
+      "x": 1920,
+      "y": 1000,
+      "w": 390,
+      "h": 844,
+      "title": "Session · light"
     }
   ],
   "launch": {

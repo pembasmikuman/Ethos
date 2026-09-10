@@ -252,6 +252,42 @@ const welcome = `${head}
 ${foot}`;
 await Bun.write(`Welcome${SFX}.dc.html`, welcome);
 
+// ---------- Session (history detail) ----------
+type Side = { vb: string; sil: string[]; m: Record<string, string[]> };
+const body = (await import('../../src/data/body.json')).default as unknown as { front: Side; back: Side };
+const load: Record<string, number> = { chest: 12, triceps: 6, delts: 5 };
+function figure(side: Side, h: number) {
+  const [, , w, hh] = side.vb.split(' ').map(Number);
+  const max = Math.max(...Object.values(load));
+  const sil = side.sil.map((d) => `<path d="${d}" fill="${DIM}" opacity="0.35"/>`).join('');
+  const m = Object.entries(side.m).map(([k, ps]) => { const v = (load[k] ?? 0) / max; return ps.map((d) => `<path d="${d}" fill="${v ? ACCENT : DIM}" opacity="${v ? 0.3 + 0.7 * v : 0.6}"/>`).join(''); }).join('');
+  return `<svg viewBox="${side.vb}" width="${(h * w) / hh}" height="${h}">${sil}${m}</svg>`;
+}
+const photo = (a: string, b: string, label: string) => `<div style="width:96px;height:96px;border-radius:12px;border:1px solid ${LINE};background:linear-gradient(160deg,${a},${b});position:relative;overflow:hidden;flex:none"><span class="lbl" style="position:absolute;left:8px;bottom:6px;font-size:8px;color:#fff;opacity:.8">${label}</span></div>`;
+const hsetRow = (n: string, w: string, r: string, rir: string, hit = false) => `<div style="display:flex;align-items:baseline;gap:10px;min-height:44px;padding:0 6px"><span class="lbl" style="width:26px;color:${MUTE}">${n}</span><span class="doto num" style="font-size:22px">${w}</span><span class="lbl" style="color:${DIM}">kg</span><span class="doto num" style="font-size:22px;color:${hit ? GREEN : TEXT};margin-left:10px">${r}</span><span class="lbl" style="color:${DIM}">reps</span><span class="doto num" style="font-size:22px;color:${MUTE};margin-left:10px">${rir}</span><span class="lbl" style="color:${DIM}">rir</span></div>`;
+const session = `${head}
+<div style="width:390px;height:844px;background:${BG};display:flex;flex-direction:column;padding:56px 16px 34px;box-sizing:border-box;gap:10px;overflow:hidden">
+  <div class="lbl" style="color:${TEXT};padding:0 4px;min-height:32px;display:flex;align-items:center">‹ History</div>
+  <div style="display:flex;flex-direction:column;gap:6px;padding:0 4px 6px">
+    <div class="doto" style="font-size:34px;line-height:1">PPL · PUSH A</div>
+    <div class="lbl">Wed 10 Sep · 54 min · 17 sets · 6 420 kg</div>
+    <div class="lbl" style="color:${DIM}">Tap a number to edit · hold a set to delete</div>
+  </div>
+  <div style="padding:14px;border-radius:16px;background:${CARD};border:1px solid ${LINE};display:flex;justify-content:center;gap:24px">${figure(body.front, 150)}${figure(body.back, 150)}</div>
+  <div style="display:flex;gap:8px;padding:0 4px;overflow:hidden;flex:none">
+    ${photo('#2B2B30', '#6A4A3A', 'pump')}${photo('#1D2A35', '#3D5A6C', 'rack')}${photo('#3A2A22', '#8A5A3A', 'plates')}
+    <div style="width:96px;height:96px;border-radius:12px;border:1px dashed ${LINE};display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none"><span class="doto" style="font-size:26px;color:${ACCENT}">+</span><span class="lbl" style="font-size:10px;color:${DIM}">photo</span></div>
+  </div>
+  <div style="padding:12px;border-radius:12px;border:1px solid ${LINE};background:${CARD};font-size:14px;line-height:20px;min-height:72px;flex:none;color:${TEXT}">Slept 5h, still hit 82.5 on bench. Incline felt heavy, kept RIR 2. New gym crowded after 6pm.</div>
+  <div style="padding:14px;border-radius:16px;background:${CARD};border:1px solid ${LINE};display:flex;flex-direction:column;gap:4px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="doto" style="font-size:20px">BARBELL BENCH PRESS</span><span class="lbl" style="color:${DIM}">e1RM 102.5</span></div>
+    <div class="lbl" style="color:${MUTE};text-transform:none;letter-spacing:0;font-size:12px;padding:2px 6px 4px">Note: pin 4, feet back, pause every rep</div>
+    ${hsetRow('W', '40', '8', '–')}${hsetRow('1', '82.5', '8', '2', true)}${hsetRow('2', '82.5', '8', '1', true)}${hsetRow('3', '82.5', '7', '0')}
+  </div>
+</div>
+${foot}`;
+await Bun.write(`Session${SFX}.dc.html`, session);
+
 await Bun.write(LIGHT ? 'WorkoutLight.dc.html' : 'Main.dc.html', workout);
 await Bun.write(`Timer${SFX}.dc.html`, timer);
 await Bun.write(`Home${SFX}.dc.html`, home);
@@ -265,6 +301,8 @@ await Bun.write('canvas.json', JSON.stringify({
     { file: 'TimerLight.dc.html', x: 960, y: 1000, w: 390, h: 844, title: 'Rest timer · light' },
     { file: 'Welcome.dc.html', x: 1440, y: 0, w: 390, h: 844, title: 'Welcome · dark' },
     { file: 'WelcomeLight.dc.html', x: 1440, y: 1000, w: 390, h: 844, title: 'Welcome · light' },
+    { file: 'Session.dc.html', x: 1920, y: 0, w: 390, h: 844, title: 'Session · dark' },
+    { file: 'SessionLight.dc.html', x: 1920, y: 1000, w: 390, h: 844, title: 'Session · light' },
   ],
   launch: { view: 'canvas' },
 }, null, 2));

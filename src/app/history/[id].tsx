@@ -47,10 +47,10 @@ export default function SessionDetail() {
   if (!session) return null;
   const { date, mins } = sessionMeta(session);
 
-  const groups: { name: string; exercise_id: string; target: number; sets: SetRow[] }[] = [];
+  const groups: { name: string; exercise_id: string; target: number; notes: string; sets: SetRow[] }[] = [];
   for (const s of sets) {
     let g = groups.find((x) => x.name === s.name);
-    if (!g) groups.push((g = { name: s.name, exercise_id: s.exercise_id, target: s.target_rep_max, sets: [] }));
+    if (!g) groups.push((g = { name: s.name, exercise_id: s.exercise_id, target: s.target_rep_max, notes: s.notes, sets: [] }));
     g.sets.push(s);
   }
 
@@ -164,6 +164,7 @@ export default function SessionDetail() {
                 <Pressable onPress={() => router.push(`/exercise/${g.exercise_id}`)} hitSlop={8} style={{ flex: 1 }}><Doto size={20}>{g.name.toUpperCase()}</Doto></Pressable>
                 {best > 0 && <Label color={t.dim}>e1RM {fmtKg(Math.round(best * 2) / 2)}</Label>}
               </View>
+              {g.notes !== '' && <Label color={t.mute} style={{ paddingHorizontal: 6, paddingBottom: 4 }}>{g.notes}</Label>}
               {g.sets.map((x) => {
                 const warm = x.set_type === 'warmup';
                 if (!warm) n += 1;
