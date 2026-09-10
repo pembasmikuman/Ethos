@@ -7,7 +7,7 @@ import { fmtKg } from '../lib/format';
 
 export type Field = 'weight' | 'reps' | 'rir';
 export type SetDraft = { id: number; type: 'warmup' | 'working'; weight: string; reps: string; rir: string; done: boolean };
-export type ExerciseBlock = { exercise: Exercise; sets: SetDraft[]; prev: LoggedSet[]; overload: boolean; stalled: boolean };
+export type ExerciseBlock = { exercise: Exercise; sets: SetDraft[]; prev: LoggedSet[]; overload: boolean; deload: boolean; why: string; stalled: boolean };
 
 type State = {
   sessionId: string | null;
@@ -43,11 +43,13 @@ async function buildBlock(ex: Exercise, targetSets: number): Promise<ExerciseBlo
   const history = await recentExerciseSessions(ex.id, 3);
   const prev = history[0] ?? [];
   const next = nextWeight(prev, ex);
-  const weight = next ? fmtKg(next.weight) : '';
+  const weight = next ? fmtKg(next.weight) : ex.load === 'bodyweight' ? '0' : '';
   return {
     exercise: ex,
     prev,
     overload: next?.overload ?? false,
+    deload: next?.deload ?? false,
+    why: next?.why ?? '',
     stalled: stalled(history, ex),
     sets: Array.from({ length: targetSets }, () => emptySet(weight)),
   };

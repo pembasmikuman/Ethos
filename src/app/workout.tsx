@@ -22,11 +22,17 @@ function ExercisePage({ block, active, restLeft }: { block: ExerciseBlock; activ
       {block.overload && (
         <View style={[s.banner, { backgroundColor: t.warnBg, borderColor: t.warnLine }]}>
           <View style={[s.dot, { backgroundColor: t.accent }]} />
-          <Label color={t.accent} style={{ flex: 1 }}>Ready to overload</Label>
-          <Doto size={18} color={t.accent}>+{fmtKg(block.exercise.increment_kg)} kg</Doto>
+          <Label color={t.accent} style={{ flex: 1 }}>{block.why}</Label>
+          <Doto size={18} color={t.accent}>{block.exercise.load === 'bodyweight' ? '+1 REP' : `+${fmtKg(block.exercise.increment_kg)} kg`}</Doto>
         </View>
       )}
-      {block.stalled && !block.overload && (
+      {block.deload && (
+        <View style={[s.banner, { backgroundColor: t.card, borderColor: t.line }]}>
+          <View style={[s.dot, { backgroundColor: t.mute }]} />
+          <Label style={{ flex: 1 }}>{block.why}</Label>
+        </View>
+      )}
+      {block.stalled && !block.overload && !block.deload && (
         <View style={[s.banner, { backgroundColor: t.card, borderColor: t.line }]}>
           <View style={[s.dot, { backgroundColor: t.mute }]} />
           <Label style={{ flex: 1 }}>Stalled 3 sessions · try −10%</Label>
@@ -60,6 +66,8 @@ function ExercisePage({ block, active, restLeft }: { block: ExerciseBlock; activ
               set={set}
               prev={set.type === 'working' ? block.prev[n - 1] : undefined}
               targetMax={block.exercise.target_rep_max}
+              load={block.exercise.load}
+              perSide={block.exercise.per_side === 1}
               active={active && i === w.focus.setIdx}
               focusField={active && i === w.focus.setIdx ? w.focus.field : null}
               onFocus={(f) => w.setFocus(i, f)}

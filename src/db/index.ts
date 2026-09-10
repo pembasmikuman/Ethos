@@ -33,4 +33,11 @@ export type Exercise = {
   target_rep_min: number;
   target_rep_max: number;
   increment_kg: number;
+  library_id: string;
+  progression: Progression;
+  load: Load;
+  per_side: number;
 };
+
+export type Progression = 'double' | 'linear' | 'greyskull';
+export type Load = 'weight' | 'bodyweight' | 'time';

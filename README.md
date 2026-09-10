@@ -11,10 +11,11 @@ Built for one person, one gym bag. Logs sets fast, suggests the next weight, buz
 - **Routines** are plans (UL, PPL). Each holds days (Day A, Day B). Days hold exercises with target sets.
 - **Preview then start.** Reorder, swap, add, remove exercises before or during a session.
 - **Logging.** Custom numpad, kg → reps → RIR in one flow, previous session inline, swipe a set to remove, swipe down for next exercise.
-- **Double progression.** Hit the top of the rep range on every set at RIR ≥ 1, next session pre-fills +increment. Three stalls, it suggests a deload.
+- **Progression rule per exercise.** Double progression (default), linear, or Greyskull LP. Every pre-filled weight says why. Bodyweight moves progress in reps, timed moves log seconds, per-side moves show the split.
 - **Rest timer** as a local notification plus haptic. Survives backgrounding.
-- **Moves** library grouped by movement, variants per equipment and machine brand. Each variant keeps its own history and est. 1RM trend.
-- **Home** carousel: weekly hard sets per muscle against the 10–20 band, training days grid.
+- **Moves** grouped by movement, variants per equipment and machine brand. Each variant keeps its own history and est. 1RM trend.
+- **Library** of 1,200+ exercises with step instructions. Search it from the picker or the new-exercise form. See [docs/NOTICE.md](docs/NOTICE.md).
+- **Home** carousel: weekly hard sets per muscle against the 10–20 band, training days grid, front and back muscle map shaded by this week's work.
 - **History** with edit and delete. **Backup** to JSON via the share sheet, restore from Files.
 - Dark and light.
 

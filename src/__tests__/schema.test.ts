@@ -20,3 +20,11 @@ test('brand folds into display name', () => {
   const rows = db.query("SELECT CASE WHEN brand <> '' THEN name || ' · ' || brand ELSE name END AS name FROM exercises ORDER BY id").all() as { name: string }[];
   expect(rows.map((r) => r.name)).toEqual(['Chest Press · Technogym', 'Chest Press']);
 });
+
+test('new exercises default to weight load and double progression', () => {
+  const db = new Database(':memory:');
+  for (const sql of sqls) db.exec(sql);
+  db.exec("INSERT INTO exercises (id, name, primary_muscle) VALUES ('a', 'Row', 'back')");
+  const row = db.query('SELECT load, progression, per_side, library_id FROM exercises').get() as any;
+  expect(row).toEqual({ load: 'weight', progression: 'double', per_side: 0, library_id: '' });
+});

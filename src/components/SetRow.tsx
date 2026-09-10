@@ -3,6 +3,7 @@ import { useTheme } from '../lib/theme';
 import { fmtKg } from '../lib/format';
 import type { Field, SetDraft } from '../store/workout';
 import type { LoggedSet } from '../db/queries';
+import type { Load } from '../db';
 import { Doto, Label } from './Text';
 import { Check } from './Check';
 
@@ -12,18 +13,21 @@ type Props = {
   set: SetDraft;
   prev?: LoggedSet;
   targetMax: number;
+  load?: Load;
+  perSide?: boolean;
   active: boolean;
   focusField: Field | null;
   onFocus: (field: Field) => void;
   onLongPress?: () => void;
 };
 
-export function SetRow({ index, workingNumber, set, prev, targetMax, active, focusField, onFocus, onLongPress }: Props) {
+export function SetRow({ index, workingNumber, set, prev, targetMax, load = 'weight', perSide = false, active, focusField, onFocus, onLongPress }: Props) {
   const t = useTheme();
   const warm = set.type === 'warmup';
   const ink = set.done || active ? t.text : t.dim;
   const prevText = prev ? `prev ${fmtKg(prev.weight)} × ${prev.reps}${prev.rir != null ? ` @ ${prev.rir}` : ''}` : '';
-  const hint = active && !warm ? `${prevText}${prevText ? ' · ' : ''}target ${targetMax}` : prevText;
+  const side = perSide && set.reps !== '' ? `${Number(set.reps) / 2} per side` : '';
+  const hint = [prevText, active && !warm ? `target ${targetMax}${load === 'time' ? 's' : ''}` : '', side].filter(Boolean).join(' · ');
 
   const cell = (field: Field, unit: string) => {
     const v = set[field];
@@ -44,8 +48,8 @@ export function SetRow({ index, workingNumber, set, prev, targetMax, active, foc
       <Label color={warm ? t.warm : t.mute} style={s.num}>{warm ? 'W' : String(workingNumber)}</Label>
       <View style={s.body}>
         <View style={s.cells}>
-          {cell('weight', 'kg')}
-          {cell('reps', 'reps')}
+          {cell('weight', load === 'bodyweight' ? '+kg' : 'kg')}
+          {cell('reps', load === 'time' ? 'sec' : 'reps')}
           {!warm && cell('rir', 'rir')}
         </View>
         {hint !== '' && <Label color={active ? t.mute : t.dim} size={10}>{hint}</Label>}

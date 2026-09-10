@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { allSessions, listRoutines, recentSessions, setsSince, type Routine } from '../db/queries';
 import { daysAgo, sessionGrid, upNext, weeklyVolume, weekStart } from '../lib/progression';
 import { DotBars } from '../components/DotBars';
+import { BodyMap } from '../components/BodyMap';
 import { DOCK_HEIGHT } from '../components/Dock';
 import { useTheme, useTopInset } from '../lib/theme';
 import { useWorkout } from '../store/workout';
@@ -126,9 +127,17 @@ export default function Home() {
               })}
             </View>
           </View></View>
+
+          <View style={{ width: panelW + 32, paddingHorizontal: 16 }}><View style={[s.panel, { flex: 1, backgroundColor: t.card, borderColor: t.line }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Label>This week · muscle map</Label>
+              <Label color={t.dim}>{MUSCLES.filter(([, k]) => !(volume[k] ?? 0)).map(([l]) => l).join(' ').toLowerCase() || 'all hit'}</Label>
+            </View>
+            <BodyMap load={volume} height={190} />
+          </View></View>
         </ScrollView>
         <View style={s.pageDots}>
-          {[0, 1].map((i) => <View key={i} style={{ width: i === page ? 14 : 6, height: 6, borderRadius: 3, backgroundColor: i === page ? t.accent : t.dim }} />)}
+          {[0, 1, 2].map((i) => <View key={i} style={{ width: i === page ? 14 : 6, height: 6, borderRadius: 3, backgroundColor: i === page ? t.accent : t.dim }} />)}
         </View>
       </View>
 

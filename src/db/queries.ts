@@ -1,8 +1,8 @@
 import * as Crypto from 'expo-crypto';
-import { getDb, type Exercise } from './index';
+import { getDb, type Exercise, type Load, type Progression } from './index';
 
 /** Exercise columns with brand folded into name for display. Use exerciseById for the raw parts. */
-const EX = (a: string) => `${a}.id, ${a}.name AS base, CASE WHEN ${a}.brand <> '' THEN ${a}.name || ' · ' || ${a}.brand ELSE ${a}.name END AS name, ${a}.brand, ${a}.movement, ${a}.primary_muscle, ${a}.secondary_muscles, ${a}.equipment, ${a}.default_rest_seconds, ${a}.target_rep_min, ${a}.target_rep_max, ${a}.increment_kg`;
+const EX = (a: string) => `${a}.id, ${a}.name AS base, CASE WHEN ${a}.brand <> '' THEN ${a}.name || ' · ' || ${a}.brand ELSE ${a}.name END AS name, ${a}.brand, ${a}.movement, ${a}.primary_muscle, ${a}.secondary_muscles, ${a}.equipment, ${a}.default_rest_seconds, ${a}.target_rep_min, ${a}.target_rep_max, ${a}.increment_kg, ${a}.library_id, ${a}.progression, ${a}.load, ${a}.per_side`;
 
 export type Routine = { id: string; name: string; plan: string; plan_order: number; exercises: number; last_done: string | null };
 export type LoggedSet = {
@@ -256,22 +256,25 @@ export async function exerciseById(id: string): Promise<Exercise | null> {
   return db.getFirstAsync<Exercise>('SELECT * FROM exercises WHERE id = ?', [id]);
 }
 
-export type ExerciseSettings = Pick<Exercise, 'default_rest_seconds' | 'target_rep_min' | 'target_rep_max' | 'increment_kg'>;
+export type ExerciseSettings = Pick<Exercise, 'default_rest_seconds' | 'target_rep_min' | 'target_rep_max' | 'increment_kg' | 'progression'>;
 
 export async function updateExercise(id: string, s: ExerciseSettings): Promise<void> {
   const db = await getDb();
   await db.runAsync(
-    'UPDATE exercises SET default_rest_seconds = ?, target_rep_min = ?, target_rep_max = ?, increment_kg = ? WHERE id = ?',
-    [s.default_rest_seconds, s.target_rep_min, s.target_rep_max, s.increment_kg, id],
+    'UPDATE exercises SET default_rest_seconds = ?, target_rep_min = ?, target_rep_max = ?, increment_kg = ?, progression = ? WHERE id = ?',
+    [s.default_rest_seconds, s.target_rep_min, s.target_rep_max, s.increment_kg, s.progression, id],
   );
 }
 
-export type ExerciseIdentity = { name: string; brand: string; movement: string; primary_muscle: string; equipment: string };
+export type ExerciseIdentity = { name: string; brand: string; movement: string; primary_muscle: string; equipment: string; secondary_muscles?: string; library_id?: string; load?: Load; per_side?: number };
 
 export async function createExercise(e: ExerciseIdentity): Promise<string> {
   const db = await getDb();
   const id = Crypto.randomUUID();
-  await db.runAsync('INSERT INTO exercises (id, name, brand, movement, primary_muscle, equipment) VALUES (?, ?, ?, ?, ?, ?)', [id, e.name, e.brand, e.movement, e.primary_muscle, e.equipment]);
+  await db.runAsync(
+    'INSERT INTO exercises (id, name, brand, movement, primary_muscle, equipment, secondary_muscles, library_id, load, per_side) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [id, e.name, e.brand, e.movement, e.primary_muscle, e.equipment, e.secondary_muscles ?? '', e.library_id ?? '', e.load ?? 'weight', e.per_side ?? 0],
+  );
   return id;
 }
 
@@ -280,8 +283,8 @@ export async function duplicateExercise(id: string): Promise<string> {
   const db = await getDb();
   const nid = Crypto.randomUUID();
   await db.runAsync(
-    `INSERT INTO exercises (id, name, brand, movement, primary_muscle, secondary_muscles, equipment, default_rest_seconds, target_rep_min, target_rep_max, increment_kg)
-     SELECT ?, name, brand, movement, primary_muscle, secondary_muscles, equipment, default_rest_seconds, target_rep_min, target_rep_max, increment_kg FROM exercises WHERE id = ?`,
+    `INSERT INTO exercises (id, name, brand, movement, primary_muscle, secondary_muscles, equipment, default_rest_seconds, target_rep_min, target_rep_max, increment_kg, library_id, progression, load, per_side)
+     SELECT ?, name, brand, movement, primary_muscle, secondary_muscles, equipment, default_rest_seconds, target_rep_min, target_rep_max, increment_kg, library_id, progression, load, per_side FROM exercises WHERE id = ?`,
     [nid, id],
   );
   return nid;
@@ -309,7 +312,7 @@ export async function exerciseHistory(exerciseId: string, n = 12): Promise<{ ses
 
 export async function renameExercise(id: string, e: ExerciseIdentity): Promise<void> {
   const db = await getDb();
-  await db.runAsync('UPDATE exercises SET name = ?, brand = ?, movement = ?, primary_muscle = ?, equipment = ? WHERE id = ?', [e.name, e.brand, e.movement, e.primary_muscle, e.equipment, id]);
+  await db.runAsync('UPDATE exercises SET name = ?, brand = ?, movement = ?, primary_muscle = ?, equipment = ?, load = ?, per_side = ? WHERE id = ?', [e.name, e.brand, e.movement, e.primary_muscle, e.equipment, e.load ?? 'weight', e.per_side ?? 0, id]);
 }
 
 /** Refuses if the exercise has logged sets. Returns false in that case. */

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { addRoutineExercise, allExercises, replaceRoutineExercise, routineExerciseRows } from '../../db/queries';
+import { addRoutineExercise, allExercises, createExercise, exerciseById, replaceRoutineExercise, routineExerciseRows } from '../../db/queries';
+import { searchLibrary, type LibraryEntry } from '../../lib/library';
 import type { Exercise } from '../../db';
 import { fonts, useTheme, useTopInset } from '../../lib/theme';
 import { groupVariants } from '../../lib/variants';
@@ -35,7 +36,15 @@ export default function PickExercise() {
     router.back();
   };
 
+  const fromLibrary = async (e: LibraryEntry) => {
+    const id = await createExercise({ name: e.name, brand: '', movement: '', primary_muscle: e.muscle, equipment: e.equipment, secondary_muscles: e.secondary, library_id: e.id, load: e.equipment === 'bodyweight' ? 'bodyweight' : 'weight' });
+    const ex = await exerciseById(id);
+    if (ex) await pick(ex);
+  };
+
   const needle = q.trim().toLowerCase();
+  const haveLib = new Set(all.map((e) => e.library_id));
+  const fromLib = searchLibrary(needle, 12).filter((e) => !haveLib.has(e.id));
   const list = all.filter((e) => !have.has(e.id) && (!needle || e.name.toLowerCase().includes(needle) || e.primary_muscle.includes(needle)));
 
   let lastMuscle = '';
@@ -69,6 +78,14 @@ export default function PickExercise() {
           </View>
         );
       })}
+      {fromLib.length > 0 && <Label style={s.section}>library</Label>}
+      {fromLib.map((e) => (
+        <Pressable key={e.id} onPress={() => fromLibrary(e)} style={({ pressed }) => [s.row, { borderBottomColor: t.line, opacity: pressed ? 0.7 : 1 }]}>
+          <Label color={t.text} style={{ flex: 1 }}>{e.name}</Label>
+          <Label color={t.dim}>{e.muscle} · {e.equipment}</Label>
+          <Label color={t.accent}>+</Label>
+        </Pressable>
+      ))}
       {routine && <Pressable onPress={() => router.push(`/exercise/new?routine=${routine}`)} style={({ pressed }) => [s.add, { borderColor: t.line, opacity: pressed ? 0.7 : 1 }]}>
         <Label color={t.accent}>+ New exercise</Label>
       </Pressable>}

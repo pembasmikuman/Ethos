@@ -5,6 +5,10 @@ export type ExerciseLike = {
   increment_kg: number;
   primary_muscle: string;
   secondary_muscles: string;
+  /** Rule that picks next weight. Default double progression. */
+  progression?: 'double' | 'linear' | 'greyskull';
+  /** bodyweight: progress reps, not load. time: reps are seconds. */
+  load?: 'weight' | 'bodyweight' | 'time';
 };
 
 const working = <T extends SetLike>(sets: T[]): T[] => sets.filter((s) => (s.set_type ?? 'working') === 'working');
@@ -26,13 +30,42 @@ export function stalled(sessions: SetLike[][], ex: ExerciseLike, n = 3): boolean
   return recent.every((sets) => Math.max(...sets.map((s) => s.weight)) === top && sets.some((s) => s.reps < ex.target_rep_min));
 }
 
-/** Weight to prefill next session. */
-export function nextWeight(lastSets: SetLike[], ex: ExerciseLike): { weight: number; overload: boolean; deload: boolean } | null {
+export type Next = { weight: number; overload: boolean; deload: boolean; /** Why this number, one line. */ why: string };
+
+/**
+ * Weight to prefill next session, by the exercise's rule.
+ * double:    all sets at rep max with RIR >= 1 -> + increment.
+ * linear:    all sets at rep min -> + increment; any set under min -> same.
+ * greyskull: last set is AMRAP. >= 2x rep min -> + 2 increments; all sets at min -> + increment;
+ *            any set under min -> -10 %.
+ * bodyweight load: weight stays (added load only), overload flag means "add a rep".
+ */
+export function nextWeight(lastSets: SetLike[], ex: ExerciseLike): Next | null {
   const w = working(lastSets);
   if (w.length === 0) return null;
   const last = w[0].weight;
-  if (readyToOverload(lastSets, ex)) return { weight: last + ex.increment_kg, overload: true, deload: false };
-  return { weight: last, overload: false, deload: false };
+  const inc = ex.increment_kg;
+  const allMin = w.every((s) => s.reps >= ex.target_rep_min);
+  if (ex.load === 'bodyweight') {
+    const up = readyToOverload(lastSets, ex);
+    return { weight: last, overload: up, deload: false, why: up ? `all sets at ${ex.target_rep_max}, add a rep` : `same load, chase ${ex.target_rep_max} reps` };
+  }
+  switch (ex.progression ?? 'double') {
+    case 'linear':
+      return allMin
+        ? { weight: last + inc, overload: true, deload: false, why: `all sets at ${ex.target_rep_min}+, +${inc} kg` }
+        : { weight: last, overload: false, deload: false, why: `missed ${ex.target_rep_min}, same weight` };
+    case 'greyskull': {
+      const amrap = w[w.length - 1].reps;
+      if (amrap >= ex.target_rep_min * 2) return { weight: last + inc * 2, overload: true, deload: false, why: `AMRAP ${amrap}, double jump +${inc * 2} kg` };
+      if (allMin) return { weight: last + inc, overload: true, deload: false, why: `all sets at ${ex.target_rep_min}+, +${inc} kg` };
+      return { weight: roundTo(last * 0.9), overload: false, deload: true, why: `missed ${ex.target_rep_min}, reset -10 %` };
+    }
+    default:
+      return readyToOverload(lastSets, ex)
+        ? { weight: last + inc, overload: true, deload: false, why: `all sets at ${ex.target_rep_max} with RIR, +${inc} kg` }
+        : { weight: last, overload: false, deload: false, why: `same weight, chase ${ex.target_rep_max} reps` };
+  }
 }
 
 export function roundTo(x: number, step = 2.5): number {

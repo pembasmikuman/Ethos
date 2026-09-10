@@ -71,6 +71,15 @@ const MIGRATIONS: string[] = [
   ALTER TABLE routines ADD COLUMN plan TEXT NOT NULL DEFAULT '';
   ALTER TABLE routines ADD COLUMN plan_order INTEGER NOT NULL DEFAULT 0;
   `,
+  // Library link (src/data/library.json id), progression rule, load type, reps counted per side.
+  `
+  ALTER TABLE exercises ADD COLUMN library_id TEXT NOT NULL DEFAULT '';
+  ALTER TABLE exercises ADD COLUMN progression TEXT NOT NULL DEFAULT 'double';
+  ALTER TABLE exercises ADD COLUMN load TEXT NOT NULL DEFAULT 'weight';
+  ALTER TABLE exercises ADD COLUMN per_side INTEGER NOT NULL DEFAULT 0;
+  UPDATE exercises SET load = 'bodyweight' WHERE id IN ('pullup', 'dips', 'leg-raise');
+  UPDATE exercises SET per_side = 1 WHERE id IN ('split-squat', 'db-row');
+  `,
 ];
 
 export async function migrate(db: SQLiteDatabase): Promise<void> {

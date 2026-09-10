@@ -13,9 +13,28 @@ test('overload when all working sets hit ceiling with rir >= 1', () => {
 });
 
 test('nextWeight bumps by increment on overload', () => {
-  expect(nextWeight([set(80, 12), set(80, 12)], ex)).toEqual({ weight: 82.5, overload: true, deload: false });
-  expect(nextWeight([set(80, 10), set(80, 9)], ex)).toEqual({ weight: 80, overload: false, deload: false });
+  expect(nextWeight([set(80, 12), set(80, 12)], ex)).toMatchObject({ weight: 82.5, overload: true, deload: false });
+  expect(nextWeight([set(80, 10), set(80, 9)], ex)).toMatchObject({ weight: 80, overload: false, deload: false });
   expect(nextWeight([], ex)).toBeNull();
+});
+
+test('linear: every set at rep min adds increment', () => {
+  const lin = { ...ex, progression: 'linear' as const, target_rep_min: 5, target_rep_max: 5 };
+  expect(nextWeight([set(100, 5), set(100, 5), set(100, 5)], lin)).toMatchObject({ weight: 102.5, overload: true });
+  expect(nextWeight([set(100, 5), set(100, 4)], lin)).toMatchObject({ weight: 100, overload: false });
+});
+
+test('greyskull: AMRAP double jump, miss resets 10 %', () => {
+  const g = { ...ex, progression: 'greyskull' as const, target_rep_min: 5, target_rep_max: 5 };
+  expect(nextWeight([set(100, 5), set(100, 5), set(100, 10)], g)).toMatchObject({ weight: 105, overload: true });
+  expect(nextWeight([set(100, 5), set(100, 5), set(100, 7)], g)).toMatchObject({ weight: 102.5, overload: true });
+  expect(nextWeight([set(100, 5), set(100, 5), set(100, 3)], g)).toMatchObject({ weight: 90, deload: true });
+});
+
+test('bodyweight: load stays, overload means add a rep', () => {
+  const bw = { ...ex, load: 'bodyweight' as const };
+  expect(nextWeight([set(0, 12), set(0, 12)], bw)).toMatchObject({ weight: 0, overload: true });
+  expect(nextWeight([set(0, 12), set(0, 9)], bw)).toMatchObject({ weight: 0, overload: false });
 });
 
 test('stalled after 3 sessions same weight under rep floor', () => {
