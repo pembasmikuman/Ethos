@@ -2,7 +2,7 @@ import * as Crypto from 'expo-crypto';
 import { getDb, type Exercise, type Load, type Progression } from './index';
 
 /** Exercise columns with brand folded into name for display. Use exerciseById for the raw parts. */
-const EX = (a: string) => `${a}.id, ${a}.name AS base, CASE WHEN ${a}.brand <> '' THEN ${a}.name || ' · ' || ${a}.brand ELSE ${a}.name END AS name, ${a}.brand, ${a}.movement, ${a}.primary_muscle, ${a}.secondary_muscles, ${a}.equipment, ${a}.default_rest_seconds, ${a}.target_rep_min, ${a}.target_rep_max, ${a}.increment_kg, ${a}.library_id, ${a}.progression, ${a}.load, ${a}.per_side`;
+const EX = (a: string) => `${a}.id, ${a}.name AS base, CASE WHEN ${a}.brand <> '' THEN ${a}.name || ' · ' || ${a}.brand ELSE ${a}.name END AS name, ${a}.brand, ${a}.movement, ${a}.primary_muscle, ${a}.secondary_muscles, ${a}.equipment, ${a}.default_rest_seconds, ${a}.target_rep_min, ${a}.target_rep_max, ${a}.increment_kg, ${a}.library_id, ${a}.progression, ${a}.load, ${a}.per_side, ${a}.notes`;
 
 export type Routine = { id: string; name: string; plan: string; plan_order: number; exercises: number; last_done: string | null };
 export type LoggedSet = {
@@ -265,6 +265,11 @@ export async function updateExercise(id: string, s: ExerciseSettings): Promise<v
     'UPDATE exercises SET default_rest_seconds = ?, target_rep_min = ?, target_rep_max = ?, increment_kg = ?, progression = ? WHERE id = ?',
     [s.default_rest_seconds, s.target_rep_min, s.target_rep_max, s.increment_kg, s.progression, id],
   );
+}
+
+export async function setExerciseNotes(id: string, notes: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('UPDATE exercises SET notes = ? WHERE id = ?', [notes, id]);
 }
 
 export type ExerciseIdentity = { name: string; brand: string; movement: string; primary_muscle: string; equipment: string; secondary_muscles?: string; library_id?: string; load?: Load; per_side?: number };

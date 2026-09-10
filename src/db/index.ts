@@ -37,6 +37,7 @@ export type Exercise = {
   progression: Progression;
   load: Load;
   per_side: number;
+  notes: string;
 };
 
 export type Progression = 'double' | 'linear' | 'greyskull';

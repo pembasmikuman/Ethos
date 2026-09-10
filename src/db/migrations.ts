@@ -89,6 +89,8 @@ const MIGRATIONS: string[] = [
     created_at TEXT NOT NULL
   );
   `,
+  // Free note per exercise: seat height, pin, grip, whatever to remember next time.
+  `ALTER TABLE exercises ADD COLUMN notes TEXT NOT NULL DEFAULT '';`,
 ];
 
 export async function migrate(db: SQLiteDatabase): Promise<void> {

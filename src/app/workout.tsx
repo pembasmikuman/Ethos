@@ -32,6 +32,12 @@ function ExercisePage({ block, active, restLeft }: { block: ExerciseBlock; activ
           <Label style={{ flex: 1 }}>{block.why}</Label>
         </View>
       )}
+      <Pressable
+        onPress={() => Alert.prompt('Note · ' + block.exercise.name, 'Seat, pin, grip. Shows every time.', (v) => w.setNotes(block.exercise.id, v.trim()), 'plain-text', block.exercise.notes)}
+        style={[s.banner, { backgroundColor: 'transparent', borderColor: t.line, borderStyle: block.exercise.notes ? 'solid' : 'dashed' }]}
+      >
+        <Label color={block.exercise.notes ? t.text : t.dim} style={{ flex: 1 }}>{block.exercise.notes || 'Add a note for this exercise'}</Label>
+      </Pressable>
       {block.stalled && !block.overload && !block.deload && (
         <View style={[s.banner, { backgroundColor: t.card, borderColor: t.line }]}>
           <View style={[s.dot, { backgroundColor: t.mute }]} />

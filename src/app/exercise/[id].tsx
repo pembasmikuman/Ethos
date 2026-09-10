@@ -1,13 +1,13 @@
 import { useCallback, useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Exercise } from '../../db';
-import { deleteExercise, duplicateExercise, exerciseById, exerciseHistory, updateExercise, type ExerciseSettings } from '../../db/queries';
+import { deleteExercise, duplicateExercise, exerciseById, exerciseHistory, setExerciseNotes, updateExercise, type ExerciseSettings } from '../../db/queries';
 import { epley1RM } from '../../lib/progression';
 import { fmtKg } from '../../lib/format';
 import { tapHaptic } from '../../lib/rest';
-import { useTheme, useTopInset } from '../../lib/theme';
+import { fonts, useTheme, useTopInset } from '../../lib/theme';
 import { Doto, Label } from '../../components/Text';
 import { DotTrend } from '../../components/DotTrend';
 import { DOCK_HEIGHT } from '../../components/Dock';
@@ -86,6 +86,15 @@ export default function ExerciseDetail() {
       <Doto size={32}>{ex.name.toUpperCase()}</Doto>
       {ex.brand !== '' && <Label color={t.accent} style={{ paddingTop: 4 }}>{ex.brand}</Label>}
       <Label style={{ paddingTop: 4 }}>{ex.primary_muscle}{ex.secondary_muscles ? ` · ${ex.secondary_muscles}` : ''} · {ex.equipment}</Label>
+      <TextInput
+        value={ex.notes}
+        onChangeText={(notes) => setEx({ ...ex, notes })}
+        onBlur={() => setExerciseNotes(id, ex.notes.trim())}
+        placeholder="Note: seat 4, pin 7, wide grip. Shows during the workout."
+        placeholderTextColor={t.dim}
+        multiline
+        style={[s.notes, { color: t.text, borderColor: t.line, backgroundColor: t.card }]}
+      />
 
       <View style={[s.panel, { backgroundColor: t.card, borderColor: t.line }]}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -137,6 +146,7 @@ export default function ExerciseDetail() {
 const s = StyleSheet.create({
   page: { paddingHorizontal: 16 },
   gif: { width: '100%', aspectRatio: 1, borderRadius: 14, borderWidth: 1, marginTop: 4 },
+  notes: { fontFamily: fonts.mono, fontSize: 14, lineHeight: 20, minHeight: 56, marginTop: 14, padding: 12, borderRadius: 12, borderWidth: 1, textAlignVertical: 'top' },
   panel: { marginTop: 18, borderWidth: 1, borderRadius: 14, padding: 16, gap: 14 },
   section: { paddingHorizontal: 4, paddingTop: 22, paddingBottom: 6 },
   setting: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 4, borderBottomWidth: 1, height: 56 },

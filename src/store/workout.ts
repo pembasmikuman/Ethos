@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Exercise } from '../db';
-import { deleteSession, finishSession, insertSet, recentExerciseSessions, routineExercises, startSession, type LoggedSet, type Routine } from '../db/queries';
+import { deleteSession, finishSession, insertSet, recentExerciseSessions, routineExercises, startSession, type LoggedSet, type Routine, setExerciseNotes } from '../db/queries';
 import { nextWeight, stalled, warmupRamp } from '../lib/progression';
 import { cancelRestDone, scheduleRestDone } from '../lib/rest';
 import { fmtKg } from '../lib/format';
@@ -36,6 +36,7 @@ type State = {
   adjustRest: (deltaSeconds: number) => Promise<void>;
   skipRest: () => Promise<void>;
   finish: () => Promise<string | null>;
+  setNotes: (exerciseId: string, notes: string) => Promise<void>;
   cancel: () => Promise<void>;
 };
 
@@ -198,6 +199,11 @@ export const useWorkout = create<State>((set, get) => ({
     await cancelRestDone(rest?.notifId ?? null);
     if (sessionId) await deleteSession(sessionId);
     set({ sessionId: null, routine: null, blocks: [], rest: null });
+  },
+
+  async setNotes(exerciseId, notes) {
+    await setExerciseNotes(exerciseId, notes);
+    set({ blocks: get().blocks.map((b) => (b.exercise.id === exerciseId ? { ...b, exercise: { ...b.exercise, notes } } : b)) });
   },
 
   async finish() {
