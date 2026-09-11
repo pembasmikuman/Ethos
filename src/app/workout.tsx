@@ -13,7 +13,7 @@ import { DOCK_HEIGHT } from '../components/Dock';
 import type { ExerciseBlock } from '../store/workout';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 
-function ExercisePage({ block, active, restLeft }: { block: ExerciseBlock; active: boolean; restLeft: number }) {
+function ExercisePage({ block, active, restLeft, onEdit }: { block: ExerciseBlock; active: boolean; restLeft: number; onEdit: () => void }) {
   const t = useTheme();
   const w = useWorkout();
   let working = 0;
@@ -76,7 +76,7 @@ function ExercisePage({ block, active, restLeft }: { block: ExerciseBlock; activ
               perSide={block.exercise.per_side === 1}
               active={active && i === w.focus.setIdx}
               focusField={active && i === w.focus.setIdx ? w.focus.field : null}
-              onFocus={(f) => w.setFocus(i, f)}
+              onFocus={(f) => { w.setFocus(i, f); onEdit(); }}
             />
             </Swipeable>
           );
@@ -98,6 +98,7 @@ export default function Workout() {
   const block = w.blocks[w.exIdx];
   const [now, setNow] = useState(Date.now());
   const [pageH, setPageH] = useState(0);
+  const [padOpen, setPadOpen] = useState(true);
   const pager = useRef<ScrollView>(null);
   const shown = useRef(w.exIdx);
 
@@ -171,7 +172,10 @@ export default function Workout() {
 
       <ScrollView
         ref={pager}
-        pagingEnabled
+        // Snap to our own page height; pagingEnabled snaps to the frame, which can drift from pageH.
+        snapToInterval={pageH || undefined}
+        snapToAlignment="start"
+        decelerationRate="fast"
         showsVerticalScrollIndicator={false}
         onLayout={(e) => {
           const h = e.nativeEvent.layout.height;
@@ -186,7 +190,7 @@ export default function Workout() {
       >
         {w.blocks.map((b, bi) => (
           <View key={b.exercise.id + bi} style={{ height: pageH || undefined, paddingRight: 14 }}>
-            <ExercisePage block={b} active={bi === w.exIdx} restLeft={restLeft} />
+            <ExercisePage block={b} active={bi === w.exIdx} restLeft={restLeft} onEdit={() => setPadOpen(true)} />
           </View>
         ))}
       </ScrollView>
@@ -195,12 +199,15 @@ export default function Workout() {
       </View>
 
       <View style={s.nav}>
-        <Label color={t.dim} numberOfLines={1} style={{ flex: 1, textAlign: 'center' }}>
+        <Label color={t.dim} numberOfLines={1} style={{ flex: 1 }}>
           {w.blocks[w.exIdx + 1] ? `↓ Next · ${w.blocks[w.exIdx + 1].exercise.name}` : 'Last exercise'}
         </Label>
+        <Pressable onPress={() => setPadOpen(!padOpen)} hitSlop={10}>
+          <Label color={t.accent}>{padOpen ? 'Hide keypad ⌄' : 'Keypad ⌃'}</Label>
+        </Pressable>
       </View>
 
-      <Numpad onKey={onKey} onDone={onDone} doneLabel={doneLabel} />
+      {padOpen && <Numpad onKey={onKey} onDone={onDone} doneLabel={doneLabel} />}
     </View>
   );
 }
