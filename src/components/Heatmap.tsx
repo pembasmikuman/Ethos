@@ -26,8 +26,8 @@ export function Heatmap({ cols, months }: { cols: HeatCell[][]; months: string[]
         </View>
         <ScrollView ref={ref} horizontal showsHorizontalScrollIndicator={false} onContentSizeChange={() => ref.current?.scrollToEnd({ animated: false })} style={{ flex: 1 }}>
           <View>
-            <View style={{ flexDirection: 'row', height: 16 }}>
-              {months.map((m, i) => <Label key={i} size={9} color={t.dim} style={{ width: STEP, overflow: 'visible' }}>{m}</Label>)}
+            <View style={{ height: 16 }}>
+              {months.map((m, i) => m ? <Label key={i} size={9} numberOfLines={1} color={t.dim} style={{ position: 'absolute', left: i * STEP }}>{m}</Label> : null)}
             </View>
             <View style={{ flexDirection: 'row', gap: GAP }}>
               {cols.map((col, ci) => (

@@ -68,9 +68,17 @@ test('weekly volume credits secondary at half', () => {
 
 import { daysAgo, upNext } from '../lib/progression';
 
-test('upNext: never done first, then oldest', () => {
-  const r = [{ id: 'a', last_done: '2026-09-05' }, { id: 'b', last_done: null }, { id: 'c', last_done: '2026-09-01' }];
-  expect(upNext(r).map((x) => x.id)).toEqual(['b', 'c', 'a']);
+test('upNext: per plan, day after the latest done, wrapping; first day if none done', () => {
+  const r = [
+    { id: 'a', plan: 'UL', last_done: '2026-06-27' },
+    { id: 'b', plan: 'UL', last_done: '2026-06-16' },
+    { id: 'a2', plan: 'UL', last_done: null },
+    { id: 'x', plan: 'FB', last_done: '2026-09-01' },
+    { id: 'y', plan: 'FB', last_done: '2026-09-05' },
+    { id: 'n', plan: 'New', last_done: null },
+    { id: 'm', plan: 'New', last_done: null },
+  ];
+  expect([...upNext(r)]).toEqual(['b', 'x', 'n']);
 });
 
 test('daysAgo', () => {

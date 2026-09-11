@@ -106,9 +106,18 @@ export function weekStart(d = new Date()): string {
   return x.toISOString();
 }
 
-/** Routines ordered for Home: never done first, then longest ago. Stable on ties. */
-export function upNext<T extends { last_done: string | null }>(routines: T[]): T[] {
-  return [...routines].sort((a, b) => (a.last_done ?? '').localeCompare(b.last_done ?? ''));
+/**
+ * One "up next" routine per plan: the day after the most recently done one, in plan order, wrapping.
+ * Nothing done yet in a plan: its first day. `routines` must already be sorted by plan order.
+ */
+export function upNext<T extends { id: string; plan: string; last_done: string | null }>(routines: T[]): Set<string> {
+  const ids = new Set<string>();
+  for (const plan of new Set(routines.map((r) => r.plan))) {
+    const days = routines.filter((r) => r.plan === plan);
+    const last = days.reduce((best, r, i) => ((r.last_done ?? '') > (days[best]?.last_done ?? '') ? i : best), -1);
+    ids.add(days[(last + 1) % days.length].id);
+  }
+  return ids;
 }
 
 export function daysAgo(iso: string | null, now = Date.now()): number | null {

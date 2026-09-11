@@ -29,6 +29,7 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const [volume, setVolume] = useState<Record<string, number>>({});
   const [editing, setEditing] = useState(false);
+  const [missed, setMissed] = useState(false);
   const [heat, setHeat] = useState<ReturnType<typeof heatmap>>({ cols: [], months: [] });
   const [page, setPage] = useState(0);
   const [panelW, setPanelW] = useState(0);
@@ -63,7 +64,7 @@ export default function Home() {
   };
 
   if (!onboarded) return <Redirect href="/welcome" />;
-  const nextId = upNext(routines)[0]?.id;
+  const nextIds = upNext(routines);
   const today = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' });
 
   const movePanelMenu = (key: Panel) => {
@@ -78,7 +79,7 @@ export default function Home() {
   const panels: Record<Panel, ReactNode> = {
     volume: (
       <>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <View style={s.panelHead}>
               <Label>This week · hard sets</Label>
               <Pressable onPress={() => setEditing((v) => !v)} hitSlop={12}><Label color={editing ? t.accent : t.green}>{editing ? 'Done' : '10–20 band'}</Label></Pressable>
             </View>
@@ -100,21 +101,31 @@ export default function Home() {
     ),
     days: (
       <>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Label>Training days · year</Label>
-              <Label color={t.green}>{heat.cols[heat.cols.length - 1]?.filter((c) => c.level > 0).length ?? 0} this week · {heat.cols.flat().filter((c) => c.level > 0).length} total</Label>
-            </View>
+            <Label>Training days · year</Label>
             <Heatmap cols={heat.cols} months={heat.months} />
+            <View style={{ flex: 1 }} />
+            <View style={s.stats}>
+              {([[heat.cols[heat.cols.length - 1]?.filter((c) => c.level > 0).length ?? 0, 'This week'], [heat.cols.flat().filter((c) => c.level > 0).length, 'Days this year']] as const).map(([n, l]) => (
+                <View key={l} style={{ gap: 2 }}>
+                  <Doto size={32}>{n}</Doto>
+                  <Label>{l}</Label>
+                </View>
+              ))}
+            </View>
           
       </>
     ),
     map: (
       <>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <View style={s.panelHead}>
               <Label>This week · muscle map</Label>
-              <Label color={t.dim}>{MUSCLES.filter(([, k]) => !(volume[k] ?? 0)).map(([l]) => l).join(' ').toLowerCase() || 'all hit'}</Label>
+              <Pressable onPress={() => setMissed((v) => !v)} hitSlop={12} style={{ flexDirection: 'row' }}>
+                <Label color={missed ? t.dim : t.accent}>Hit</Label>
+                <Label color={t.dim}> · </Label>
+                <Label color={missed ? t.accent : t.dim}>Missed</Label>
+              </Pressable>
             </View>
-            <BodyMap load={volume} height={190} />
+            <BodyMap load={missed ? Object.fromEntries(MUSCLES.map(([, k]) => [k, volume[k] ? 0 : 1])) : volume} height={190} />
           
       </>
     ),
@@ -159,7 +170,7 @@ export default function Home() {
           {plan !== '' && <Doto size={28} style={{ paddingBottom: 6 }}>{plan.toUpperCase()}</Doto>}
           {routines.filter((r) => r.plan === plan).map((r) => {
             const ago = daysAgo(r.last_done);
-            const next = r.id === nextId;
+            const next = nextIds.has(r.id);
             return (
               <Pressable key={r.id} onPress={() => go(r)} style={({ pressed }) => [s.day, { borderColor: next ? t.accent : t.line, opacity: pressed ? 0.8 : 1 }]}>
                 <View style={{ flex: 1, gap: 3 }}>
@@ -197,6 +208,8 @@ const s = StyleSheet.create({
   card: { padding: 14, borderRadius: 16, borderWidth: 1, gap: 8 },
   day: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, borderWidth: 1, minHeight: 56 },
   panel: { padding: 16, borderRadius: 16, borderWidth: 1, gap: 12 },
+  panelHead: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  stats: { flexDirection: 'row', gap: 32 },
   pageDots: { flexDirection: 'row', justifyContent: 'center', gap: 6, paddingTop: 10 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
