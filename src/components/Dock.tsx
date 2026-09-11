@@ -4,7 +4,7 @@ import { BlurView } from 'expo-blur';
 import { router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { FadeIn, FadeOut, LinearTransition, interpolateColor, runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, interpolateColor, runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { useScheme, useTheme } from '../lib/theme';
 import { fmtClock } from '../lib/format';
@@ -30,7 +30,6 @@ const ALL_ITEMS: { key: string; label: string; href: string }[] = [
 ];
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-const AnimatedBlur = Animated.createAnimatedComponent(BlurView);
 
 const ITEM_W = 72;
 const PAD = 6;
@@ -132,14 +131,14 @@ export function Dock() {
   return (
     <Animated.View pointerEvents={hidden ? 'none' : 'box-none'} style={[s.wrap, { bottom: insets.bottom + 10 }, wrapStyle]}>
       <GestureDetector gesture={pan}>
-        <AnimatedBlur layout={LinearTransition.springify().damping(26).stiffness(320)} intensity={40} tint={scheme === 'light' ? 'light' : 'dark'} style={[s.pill, { borderColor: t.line }]}>
+        <BlurView intensity={80} tint={scheme === 'light' ? 'systemThinMaterialLight' : 'systemThinMaterialDark'} style={[s.pill, { borderColor: t.line }]}>
           <Animated.View style={[s.highlight, { borderColor: t.line }, highlight]} />
           {ITEMS.map((it, i) => {
             const on = i === selected;
             const live = it.key === 'log';
             const ink = live ? (on ? t.bg : t.accent) : on ? t.accent : t.text;
             return (
-              <AnimatedPressable key={it.key} entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)} layout={LinearTransition.springify().damping(26).stiffness(320)} disabled={on} onPress={() => go(i)} style={s.item}>
+              <AnimatedPressable key={it.key} entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)} disabled={on} onPress={() => go(i)} style={s.item}>
                 <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
                   <Path d={ICONS[it.key]} stroke={ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
                 </Svg>
@@ -151,7 +150,7 @@ export function Dock() {
               </AnimatedPressable>
             );
           })}
-        </AnimatedBlur>
+        </BlurView>
       </GestureDetector>
     </Animated.View>
   );
