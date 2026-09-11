@@ -48,7 +48,7 @@ export default function Rest() {
   return (
     <View style={[s.page, { backgroundColor: t.bg, paddingTop: top + 24, paddingBottom: insets.bottom + 16 }]}>
       <View style={s.head}>
-        <Label>Rest · {block?.exercise.name}</Label>
+        <Label numberOfLines={1}>Rest · {block?.exercise.name}</Label>
         <Label>Set {w.focus.setIdx + 1} of {block?.sets.length}</Label>
       </View>
 
@@ -82,7 +82,7 @@ export default function Rest() {
 
 const s = StyleSheet.create({
   page: { flex: 1, paddingHorizontal: 16, alignItems: 'center' },
-  head: { alignSelf: 'stretch', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 },
+  head: { alignSelf: 'stretch', gap: 6, paddingHorizontal: 4 },
   ring: { marginTop: 48, width: 300, height: 300 },
   center: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', gap: 6 },
   controls: { flexDirection: 'row', gap: 10, alignSelf: 'stretch', marginTop: 40 },
