@@ -43,11 +43,11 @@ export default function Session() {
 
   return (
     <View style={{ flex: 1, backgroundColor: t.bg }}>
-    <ScrollView scrollEnabled={!dragging} contentContainerStyle={[s.page, { paddingTop: top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + (started ? 12 : 90) }]}>
+    <ScrollView scrollEnabled={!dragging} contentContainerStyle={[s.page, { paddingTop: top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + (started ? 12 : 104) }]}>
       <View style={s.head}>
-        <View style={{ gap: 4 }}>
+        <View style={{ flex: 1, gap: 4 }}>
           <Label color={started ? t.mute : t.accent}>{started ? `${fmtClock((now - w.startedAt) / 1000)} elapsed` : 'Preview · not started'}</Label>
-          <Doto size={36}>{w.title.toUpperCase()}</Doto>
+          <Doto size={36} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{w.title.toUpperCase()}</Doto>
         </View>
         <Pressable onPress={finish} hitSlop={10} style={{ alignItems: 'flex-end', gap: 4 }}>
           <Label color={t.accent}>{started ? 'Finish' : 'Discard'}</Label>
@@ -63,11 +63,11 @@ export default function Session() {
           <DragRow key={b.exercise.id} index={i} count={w.blocks.length} drag={drag} onGrab={() => { setDragging(true); tapHaptic(); }} onDrop={(f, to) => { setDragging(false); if (f !== to) w.reorderExercises(f, to); }}>
             <Pressable onPress={() => open(i)} onLongPress={() => menu(i)} style={({ pressed }) => [s.row, { borderBottomColor: t.line, backgroundColor: t.bg, opacity: pressed ? 0.7 : 1 }]}>
               <Label color={current ? t.accent : t.dim} style={{ width: 22 }}>{String(i + 1).padStart(2, '0')}</Label>
-              <View style={{ flex: 1, gap: 4 }}>
-                <Doto size={20} color={full ? t.mute : t.text}>{b.exercise.name.toUpperCase()}</Doto>
-                <Label color={t.dim}>{b.sets.map((x) => (x.done ? '●' : '○')).join(' ')}</Label>
+              <Doto size={17} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} color={full ? t.mute : t.text} style={{ flex: 1 }}>{b.exercise.name.toUpperCase()}</Doto>
+              <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                <Doto size={18} color={full ? t.green : t.mute}>{d}/{b.sets.length}</Doto>
+                <Label color={full ? t.green : t.dim}>{b.sets.map((x) => (x.done ? '●' : '○')).join(' ')}</Label>
               </View>
-              <Doto size={18} color={full ? t.green : t.mute}>{d}/{b.sets.length}</Doto>
               <View style={{ width: 36 }} />
             </Pressable>
           </DragRow>
@@ -79,6 +79,7 @@ export default function Session() {
         <Label color={t.accent}>+ Add exercise</Label>
       </Pressable>
     </ScrollView>
+    {!started && <View pointerEvents="none" style={[s.backing, { backgroundColor: t.bg, height: insets.bottom + DOCK_HEIGHT + 8 + 68 + 14 }]} />}
     {!started && (
       <Pressable
         onPress={async () => { doneHaptic(); await w.begin(); open(0); }}
@@ -97,5 +98,6 @@ const s = StyleSheet.create({
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 4, paddingBottom: 16 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 4, borderBottomWidth: 1, height: ROW_H },
   start: { position: 'absolute', left: 16, right: 16, height: 68, borderRadius: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22 },
+  backing: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   add: { marginTop: 16, borderWidth: 1, borderStyle: 'dashed', borderRadius: 12, padding: 18, alignItems: 'center' },
 });
