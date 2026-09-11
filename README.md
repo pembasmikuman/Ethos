@@ -49,6 +49,8 @@ bunx tsc --noEmit
 
 No Mac needed. The `iOS unsigned IPA` GitHub Action runs `expo prebuild` and `xcodebuild` with signing off and uploads `Ethos.ipa`. Sideload it with SideStore or AltStore on a free Apple ID.
 
+Android: the `Android APK` action uploads `Ethos.apk`; open it on the phone to install. It signs with the key in the `ANDROID_KEYSTORE` secret (`base64 -w0 ~/.config/ethos/android.keystore | gh secret set ANDROID_KEYSTORE`). Keep a copy of that keystore somewhere safe: an APK signed with a different key won't install over the old one, and uninstalling wipes your workout history.
+
 ## Import from Daily Strength
 
 ```

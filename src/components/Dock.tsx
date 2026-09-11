@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { type RefObject, useEffect, useState } from 'react';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +12,8 @@ import { tapHaptic } from '../lib/rest';
 import { useWorkout } from '../store/workout';
 import { useUi } from '../store/ui';
 import { Doto, Label } from './Text';
+
+const IOS = Platform.OS === 'ios';
 
 const ICONS: Record<string, string> = {
   home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
@@ -49,7 +51,7 @@ function rubberband(over: number, dim: number, c = 0.55): number {
   return (over * dim * c) / (dim + c * Math.abs(over));
 }
 
-export function Dock() {
+export function Dock({ blurTarget }: { blurTarget: RefObject<View | null> }) {
   const t = useTheme();
   const scheme = useScheme();
   const insets = useSafeAreaInsets();
@@ -131,7 +133,12 @@ export function Dock() {
   return (
     <Animated.View pointerEvents={hidden ? 'none' : 'box-none'} style={[s.wrap, { bottom: insets.bottom + 10 }, wrapStyle]}>
       <GestureDetector gesture={pan}>
-        <BlurView intensity={80} tint={scheme === 'light' ? 'systemThinMaterialLight' : 'systemThinMaterialDark'} style={[s.pill, { borderColor: t.line }]}>
+        <BlurView
+          intensity={80}
+          tint={scheme === 'light' ? (IOS ? 'systemThinMaterialLight' : 'light') : IOS ? 'systemThinMaterialDark' : 'dark'}
+          blurTarget={blurTarget}
+          blurMethod="dimezisBlurViewSdk31Plus"
+          style={[s.pill, { borderColor: t.line }]}>
           <Animated.View style={[s.highlight, { borderColor: t.line }, highlight]} />
           {ITEMS.map((it, i) => {
             const on = i === selected;

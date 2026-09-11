@@ -13,6 +13,7 @@
       "buildNumber": "1"
     },
     "android": {
+      "package": "com.shzwn.ethos",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

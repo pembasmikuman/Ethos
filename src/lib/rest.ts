@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import * as Haptics from 'expo-haptics';
+import { Platform } from 'react-native';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -9,6 +10,16 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
+
+// Android plays sound and shows a heads-up banner only on a high-importance channel.
+if (Platform.OS === 'android') {
+  Notifications.setNotificationChannelAsync('rest', {
+    name: 'Rest timer',
+    importance: Notifications.AndroidImportance.HIGH,
+    sound: 'default',
+    vibrationPattern: [0, 250, 150, 250],
+  }).catch(() => {});
+}
 
 let permissionAsked = false;
 
@@ -23,7 +34,7 @@ export async function scheduleRestDone(seconds: number, body: string): Promise<s
   try {
     return await Notifications.scheduleNotificationAsync({
       content: { title: 'Rest done', body, sound: true },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds, channelId: 'rest' },
     });
   } catch {
     return null;

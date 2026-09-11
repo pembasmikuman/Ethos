@@ -72,7 +72,7 @@ export default function Settings() {
         })}
       </View>
       <Label style={s.section}>Backup</Label>
-      {row('EXPORT', 'Save a JSON snapshot to Files or iCloud Drive', () => run('export', exportBackup))}
+      {row('EXPORT', 'Save a JSON snapshot to Files, iCloud or Drive', () => run('export', exportBackup))}
       {row('RESTORE', 'Pick a backup file. Replaces all current data.', onRestore, true)}
       {note && <Label color={t.green} style={{ paddingHorizontal: 4 }}>{note}</Label>}
     </ScrollView>
