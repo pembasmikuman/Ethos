@@ -1,5 +1,7 @@
 # Ethos
 
+<img src="assets/icon.png" alt="Ethos app icon" width="120">
+
 Personal workout tracker for iPhone. Dot-matrix readout, one orange accent, nothing else.
 
 Built for one person, one gym bag. Logs sets fast, suggests the next weight, buzzes when rest is over with the phone locked in a pocket. Offline, SQLite, no account.
