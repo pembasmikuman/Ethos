@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, useTopInset } from '../lib/theme';
 import { backupSummary, exportBackup, pickBackup, restoreBackup } from '../lib/backup';
 import { pickRestSound, scheduleRestDone, tapHaptic } from '../lib/rest';
 import { Doto, Label } from '../components/Text';
 import { DOCK_HEIGHT } from '../components/Dock';
-import { useUi, type Appearance, type RestSound } from '../store/ui';
+import { useUi, type Appearance } from '../store/ui';
 
 export default function Settings() {
   const t = useTheme();
@@ -17,7 +18,6 @@ export default function Settings() {
   const appearance = useUi((s) => s.appearance);
   const setAppearance = useUi((s) => s.setAppearance);
   const restSound = useUi((s) => s.restSound);
-  const setRestSound = useUi((s) => s.setRestSound);
   const customSoundLabel = useUi((s) => s.customSoundLabel);
 
   const run = async (label: string, fn: () => Promise<string | void>) => {
@@ -91,18 +91,9 @@ export default function Settings() {
       {Platform.OS === 'ios' && (
         <>
           <Label style={s.section}>Rest alert sound</Label>
-          <View style={[s.seg, { backgroundColor: t.card, borderColor: t.line }]}>
-            {(['bell', 'system', 'custom'] as RestSound[]).map((r) => {
-              const on = r === restSound;
-              return (
-                <Pressable key={r} onPressIn={tapHaptic} onPress={() => setRestSound(r)} style={[s.segItem, { backgroundColor: on ? t.bg : 'transparent', borderColor: on ? t.line : 'transparent' }]}>
-                  <Label color={on ? t.accent : t.mute}>{r}</Label>
-                </Pressable>
-              );
-            })}
-          </View>
-          {row('PICK A SOUND', customSoundLabel ? `Now using ${customSoundLabel}. Tap to change.` : 'Choose a wav, aiff or caf file under 30 seconds', onPickSound)}
-          {row('TEST', 'Rings in 2 seconds. If you hear the default alert, that file is not a format iOS can play.', onTestSound)}
+          {row('SOUND', restSound === 'custom' ? (customSoundLabel ?? 'Custom') : restSound === 'bell' ? 'Bell' : 'System default', () => router.push('/sounds'))}
+          {row('USE MY OWN FILE', 'A wav, aiff or caf under 30 seconds', onPickSound)}
+          {row('TEST', 'Rings the current sound in 2 seconds', onTestSound)}
         </>
       )}
       <Label style={s.section}>Backup</Label>
