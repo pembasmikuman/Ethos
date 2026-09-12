@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import Storage from 'expo-sqlite/kv-store';
 
 export type Appearance = 'system' | 'dark' | 'light';
-export type RestSound = 'bell' | 'system' | 'custom';
+export type RestSound = 'system' | 'custom';
 export type Panel = 'volume' | 'days' | 'map';
 const PANELS: Panel[] = ['volume', 'days', 'map'];
 
@@ -41,7 +41,7 @@ const CKEY = 'customSound';
 const PKEY = 'panelOrder';
 const initialPanels = (() => { try { const p = JSON.parse(Storage.getItemSync(PKEY) ?? '') as Panel[]; return [...p.filter((k) => PANELS.includes(k)), ...PANELS.filter((k) => !p.includes(k))]; } catch { return PANELS; } })();
 const initial = (Storage.getItemSync(KEY) as Appearance | null) ?? 'system';
-const initialRest = (Storage.getItemSync(RKEY) as RestSound | null) ?? 'bell';
+const initialRest = Storage.getItemSync(RKEY) === 'custom' ? 'custom' : 'system';
 const initialCustom = (() => { try { return JSON.parse(Storage.getItemSync(CKEY) ?? '') as { file: string; label: string }; } catch { return null; } })();
 const MKEY = 'volumeMuscles';
 const initialMuscles = (() => { try { return JSON.parse(Storage.getItemSync(MKEY) ?? '') as string[]; } catch { return DEFAULT_MUSCLES; } })();

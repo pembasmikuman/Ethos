@@ -91,7 +91,7 @@ export default function Settings() {
       {Platform.OS === 'ios' && (
         <>
           <Label style={s.section}>Rest alert sound</Label>
-          {row('SOUND', restSound === 'custom' ? (customSoundLabel ?? 'Custom') : restSound === 'bell' ? 'Bell' : 'System default', () => router.push('/sounds'))}
+          {row('SOUND', restSound === 'custom' ? (customSoundLabel ?? 'Custom') : 'System default', () => router.push('/sounds'))}
           {row('USE MY OWN FILE', 'A wav, aiff or caf under 30 seconds', onPickSound)}
           {row('TEST', 'Rings the current sound in 2 seconds', onTestSound)}
         </>

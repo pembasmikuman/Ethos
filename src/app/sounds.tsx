@@ -8,7 +8,7 @@ import { Doto, Label } from '../components/Text';
 import { DOCK_HEIGHT } from '../components/Dock';
 import { useUi } from '../store/ui';
 
-/** Rest alert sound: the device's own tones, the bundled bell, or the system default. */
+/** Rest alert sound: the device's own alert tones and ringtones, or the system default. */
 export default function Sounds() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
@@ -64,7 +64,6 @@ export default function Sounds() {
       <Label color={t.dim} style={{ paddingHorizontal: 4, paddingBottom: 8 }}>Tap one and it rings in 2 seconds. If you hear the plain iPhone alert instead, iOS cannot play that file.</Label>
 
       {row('System default', restSound === 'system', () => setRestSound('system'))}
-      {row('Bell', restSound === 'bell', () => setRestSound('bell'), 'The one that ships with the app')}
 
       {alerts.length > 0 && <Label style={s.section}>Alert tones</Label>}
       {alerts.map((x) => row(x.label, isTone(x.label), () => choose(x)))}

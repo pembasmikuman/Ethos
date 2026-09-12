@@ -1,6 +1,5 @@
 import * as Notifications from 'expo-notifications';
 import * as Haptics from 'expo-haptics';
-import { Asset } from 'expo-asset';
 import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import { Platform } from 'react-native';
@@ -29,7 +28,6 @@ if (Platform.OS === 'android') {
 // inside the app's own container. The bundle is out of reach under Expo Go, but that
 // folder is writable, so sounds are copied there and referred to by name. The folder
 // belongs to Expo Go and is shared with every project it runs, hence the prefix.
-const BELL = 'ethos-bell.wav';
 const CUSTOM = 'ethos-custom';
 // iOS plays aiff, wav and caf only, under 30 seconds. Anything else falls back to the
 // system sound with no error, which is why the settings screen has a Test button.
@@ -40,14 +38,12 @@ function soundsDir(): Directory {
 }
 
 /** Copy `src` into Library/Sounds as `name`. Returns `name`, or null if it could not be
- *  placed. `reuse` skips the copy when a file of the same size is already there, which is
- *  safe for the one bundled bell but not for a slot that different sounds take turns in. */
-async function place(src: File, name: string, reuse = false): Promise<string | null> {
+ *  placed. One name is reused for whichever sound is chosen, so always overwrite. */
+async function place(src: File, name: string): Promise<string | null> {
   try {
     const dir = soundsDir();
     if (!dir.exists) dir.create({ intermediates: true });
     const dest = new File(dir, name);
-    if (reuse && dest.exists && dest.size === src.size) return name;
     await src.copy(dest, { overwrite: true });
     return name;
   } catch {
@@ -106,18 +102,8 @@ export function systemTones(): Tone[] {
 export async function useSystemTone(tone: Tone): Promise<void> {
   const src = new File(tone.file);
   const ext = tone.file.endsWith('.m4r') ? 'm4r' : 'caf';
-  if (!(await place(src, `${CUSTOM}.${ext}`, false))) throw new Error('Could not copy that tone into place');
+  if (!(await place(src, `${CUSTOM}.${ext}`))) throw new Error('Could not copy that tone into place');
   useUi.getState().setCustomSound(`${CUSTOM}.${ext}`, tone.label);
-}
-
-async function installBell(): Promise<string | null> {
-  try {
-    const asset = Asset.fromModule(require('../../assets/bell.wav'));
-    await asset.downloadAsync();
-    return asset.localUri ? await place(new File(asset.localUri), BELL) : null;
-  } catch {
-    return null;
-  }
 }
 
 /** Let the user pick an audio file and make it the rest alert. Returns its name, or
@@ -141,18 +127,12 @@ async function alertSound(): Promise<string | true> {
   if (Platform.OS !== 'ios') return true;
   const { restSound, customSound } = useUi.getState();
   if (restSound === 'system') return true;
-  if (restSound === 'custom') {
-    try {
-      return customSound && new File(soundsDir(), customSound).exists ? customSound : true;
-    } catch {
-      return true;
-    }
+  try {
+    return customSound && new File(soundsDir(), customSound).exists ? customSound : true;
+  } catch {
+    return true;
   }
-  return (await installBell()) ?? true;
 }
-
-// Warm the copy at startup so the first completed set doesn't wait on it.
-if (useUi.getState().restSound === 'bell') installBell();
 
 let permissionAsked = false;
 
