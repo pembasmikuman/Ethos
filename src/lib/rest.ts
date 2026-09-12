@@ -1,9 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import * as Haptics from 'expo-haptics';
-import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import { Platform } from 'react-native';
-import { useUi } from '../store/ui';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -24,115 +22,36 @@ if (Platform.OS === 'android') {
   }).catch(() => {});
 }
 
-// iOS looks up a notification sound name in the app bundle and in `Library/Sounds`
-// inside the app's own container. The bundle is out of reach under Expo Go, but that
-// folder is writable, so sounds are copied there and referred to by name. The folder
-// belongs to Expo Go and is shared with every project it runs, hence the prefix.
-const CUSTOM = 'ethos-custom';
-// iOS plays aiff, wav and caf only, under 30 seconds. Anything else falls back to the
-// system sound with no error, which is why the settings screen has a Test button.
-const AUDIO_TYPES = ['audio/wav', 'audio/x-wav', 'audio/aiff', 'audio/x-aiff', 'audio/x-caf'];
+// iOS looks up a notification sound name in the app bundle and in `Library/Sounds` inside
+// the app's own container. The bundle is out of reach under Expo Go, but that folder is
+// writable and the phone's own sounds are readable, so Glass gets copied across and is
+// then asked for by name. The folder belongs to Expo Go and is shared with every project
+// it runs, hence the prefix on the copy.
+const GLASS_SRC = 'file:///System/Library/Audio/UISounds/sms-received3.caf';
+const GLASS = 'ethos-glass.caf';
+let glass: Promise<string | null> | null = null;
 
-function soundsDir(): Directory {
-  return new Directory(Paths.document.uri.replace(/\/Documents\/.*$/, '/Library/Sounds/'));
-}
-
-/** Copy `src` into Library/Sounds as `name`. Returns `name`, or null if it could not be
- *  placed. One name is reused for whichever sound is chosen, so always overwrite. */
-async function place(src: File, name: string): Promise<string | null> {
-  try {
-    const dir = soundsDir();
-    if (!dir.exists) dir.create({ intermediates: true });
-    const dest = new File(dir, name);
-    await src.copy(dest, { overwrite: true });
-    return name;
-  } catch {
-    return null;
-  }
-}
-
-export type Tone = { file: string; label: string; kind: 'alert' | 'ringtone' };
-
-// The device's own sounds. Both folders are readable from the sandbox, so a tone can be
-// copied into Library/Sounds and then asked for by name, which is the only way to get one
-// of these onto a notification: iOS exposes no picker and no list of its own.
-const TONE_DIRS: { uri: string; kind: Tone['kind'] }[] = [
-  { uri: 'file:///System/Library/Audio/UISounds/New/', kind: 'alert' },
-  { uri: 'file:///Library/Ringtones/', kind: 'ringtone' },
-];
-/** Names iOS shows for the older text tones, which sit on disk as sms-receivedN.caf. */
-const CLASSIC: Record<string, string> = {
-  'sms-received1.caf': 'Tri-tone',
-  'sms-received2.caf': 'Chime',
-  'sms-received3.caf': 'Glass',
-  'sms-received4.caf': 'Horn',
-  'sms-received5.caf': 'Bell',
-  'sms-received6.caf': 'Electronic',
-};
-
-function label(file: string): string {
-  // Several ringtones ship as -EncoreInfinitum / -EncoreRemix variants of the same name.
-  return file.replace(/\.(caf|m4r)$/, '').replace(/-Encore\w+$/, '').replace(/_/g, ' ');
-}
-
-/** Every tone on the device, alert tones first. Empty on anything but iOS. */
-export function systemTones(): Tone[] {
-  if (Platform.OS !== 'ios') return [];
-  const out: Tone[] = [];
-  const seen = new Set<string>();
-  const add = (file: string, uri: string, kind: Tone['kind'], name: string) => {
-    if (seen.has(name)) return;
-    seen.add(name);
-    out.push({ file: `${uri}${file}`, label: name, kind });
-  };
-  for (const [file, name] of Object.entries(CLASSIC)) add(file, 'file:///System/Library/Audio/UISounds/', 'alert', name);
-  for (const { uri, kind } of TONE_DIRS) {
+/** Resolves to the sound name to ask for, or null if the copy failed and the caller
+ *  should fall back to the system alert. */
+function installGlass(): Promise<string | null> {
+  glass ??= (async () => {
+    if (Platform.OS !== 'ios') return null;
     try {
-      for (const f of new Directory(uri).list()) {
-        if (/\.(caf|m4r)$/.test(f.name)) add(f.name, uri, kind, label(f.name));
-      }
+      const dir = new Directory(Paths.document.uri.replace(/\/Documents\/.*$/, '/Library/Sounds/'));
+      if (!dir.exists) dir.create({ intermediates: true });
+      const dest = new File(dir, GLASS);
+      const src = new File(GLASS_SRC);
+      if (!dest.exists || dest.size !== src.size) await src.copy(dest, { overwrite: true });
+      return GLASS;
     } catch {
-      // Folder not readable on this device or OS version. Skip it.
+      return null;
     }
-  }
-  return out.sort((a, b) => (a.kind === b.kind ? a.label.localeCompare(b.label) : a.kind === 'alert' ? -1 : 1));
+  })();
+  return glass;
 }
 
-/** Make one of the device's own tones the rest alert. Throws if it cannot be copied. */
-export async function useSystemTone(tone: Tone): Promise<void> {
-  const src = new File(tone.file);
-  const ext = tone.file.endsWith('.m4r') ? 'm4r' : 'caf';
-  if (!(await place(src, `${CUSTOM}.${ext}`))) throw new Error('Could not copy that tone into place');
-  useUi.getState().setCustomSound(`${CUSTOM}.${ext}`, tone.label);
-}
-
-/** Let the user pick an audio file and make it the rest alert. Returns its name, or
- *  null if they cancelled. Throws if the file could not be installed. */
-export async function pickRestSound(): Promise<string | null> {
-  const res = await DocumentPicker.getDocumentAsync({ type: AUDIO_TYPES, copyToCacheDirectory: true });
-  const picked = res.assets?.[0];
-  if (!picked) return null;
-  const ext = (picked.name.split('.').pop() ?? 'wav').toLowerCase();
-  // Copy under a fixed name so iOS never has to resolve spaces or accents in a path.
-  const file = `${CUSTOM}.${ext}`;
-  if (!(await place(new File(picked.uri), file))) throw new Error('Could not copy that file into place');
-  useUi.getState().setCustomSound(file, picked.name);
-  return picked.name;
-}
-
-/** What to pass as the notification's `sound`: a filename in Library/Sounds, or true for
- *  the system sound. Android always gets the system sound, because a channel's sound is
- *  fixed when the channel is created. */
-async function alertSound(): Promise<string | true> {
-  if (Platform.OS !== 'ios') return true;
-  const { restSound, customSound } = useUi.getState();
-  if (restSound === 'system') return true;
-  try {
-    return customSound && new File(soundsDir(), customSound).exists ? customSound : true;
-  } catch {
-    return true;
-  }
-}
+// Warm the copy at startup so the first completed set doesn't wait on it.
+installGlass();
 
 let permissionAsked = false;
 
@@ -144,7 +63,7 @@ export async function scheduleRestDone(seconds: number, body: string): Promise<s
     if (status !== 'granted') await Notifications.requestPermissionsAsync();
   }
   if (seconds < 1) return null;
-  const sound = await alertSound();
+  const sound = (await installGlass()) ?? true;
   try {
     return await Notifications.scheduleNotificationAsync({
       content: { title: 'Rest done', body, sound },
