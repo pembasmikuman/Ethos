@@ -12,7 +12,7 @@ type Props = {
 const ROWS: [string, string][][] = [
   [['7', '7'], ['8', '8'], ['9', '9'], ['+2.5', '+']],
   [['4', '4'], ['5', '5'], ['6', '6'], ['−2.5', '-']],
-  [['1', '1'], ['2', '2'], ['3', '3'], ['.', '.']],
+  [['1', '1'], ['2', '2'], ['3', '3'], ['⌫', 'del']],
 ];
 
 export function Numpad({ onKey, onDone, doneLabel = 'Done · Start rest' }: Props) {
@@ -38,7 +38,7 @@ export function Numpad({ onKey, onDone, doneLabel = 'Done · Start rest' }: Prop
       ))}
       <View style={s.row}>
         {key('0', '0')}
-        {key('⌫', 'del', true)}
+        {key('.', '.', true)}
         <Pressable
           onPressIn={tapHaptic}
           onPress={onDone}
