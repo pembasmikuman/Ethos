@@ -130,11 +130,14 @@ export default function Workout() {
   const shown = useRef(exIdx);
   const openPad = useCallback(() => setPadOpen(true), []);
 
-  // Follow exIdx changes made elsewhere (overview, prev/next).
+  // Realign the visible page after every commit: exIdx changed elsewhere (overview,
+  // prev/next), or pageH changed because the keypad opened or closed. Has to run as an
+  // effect, not inside onLayout, so the pages have already taken their new height.
   useEffect(() => {
-    if (shown.current === exIdx || !pageH) return;
+    if (!pageH) return;
+    const animated = shown.current !== exIdx;
     shown.current = exIdx;
-    pager.current?.scrollTo({ y: exIdx * pageH, animated: true });
+    pager.current?.scrollTo({ y: exIdx * pageH, animated });
   }, [exIdx, pageH]);
 
   if (!block) return null;
@@ -199,7 +202,6 @@ export default function Workout() {
         onLayout={(e) => {
           const h = e.nativeEvent.layout.height;
           setPageH(h);
-          pager.current?.scrollTo({ y: exIdx * h, animated: false });
         }}
         onMomentumScrollEnd={(e) => {
           const i = Math.round(e.nativeEvent.contentOffset.y / pageH);
