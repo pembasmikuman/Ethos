@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { addRoutineExercise, createExercise, duplicateExercise, exerciseById, renameExercise } from '../../db/queries';
+import { addRoutineExercise, allExercises, createExercise, duplicateExercise, exerciseById, renameExercise } from '../../db/queries';
 import { fonts, useTheme, useTopInset } from '../../lib/theme';
 import { Doto, Label } from '../../components/Text';
 import { DOCK_HEIGHT } from '../../components/Dock';
 import { searchLibrary, type LibraryEntry } from '../../lib/library';
-import type { Load } from '../../db';
+import type { Exercise, Load } from '../../db';
+import { movementFor } from '../../lib/variants';
 
 const MUSCLES = ['chest', 'back', 'quads', 'hamstrings', 'glutes', 'delts', 'biceps', 'triceps', 'calves', 'abs'];
 const EQUIPMENT = ['barbell', 'dumbbell', 'cable', 'machine', 'bodyweight'];
@@ -42,16 +43,24 @@ export default function NewExercise() {
   const [load, setLoad] = useState<Load>('weight');
   const [perSide, setPerSide] = useState(false);
   const [lib, setLib] = useState<LibraryEntry | null>(null);
+  const [all, setAll] = useState<Exercise[]>([]);
   const ok = name.trim().length > 0;
   const suggestions = !edit && !lib ? searchLibrary(name, 6) : [];
 
   const fromLibrary = (e: LibraryEntry) => {
     setLib(e);
     setName(e.name);
+    // Library names carry their gear, so file it under the bare move and next to anything
+    // already there, keeping the Moves list one row per move.
+    setMovement(movementFor(e.name, e.muscle, all));
     setMuscle(e.muscle);
     setEquipment(e.equipment);
     setLoad(e.equipment === 'bodyweight' ? 'bodyweight' : 'weight');
   };
+
+  useEffect(() => {
+    allExercises().then(setAll);
+  }, []);
 
   useEffect(() => {
     if (!edit) return;

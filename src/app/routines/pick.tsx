@@ -6,7 +6,7 @@ import { addRoutineExercise, allExercises, createExercise, exerciseById, replace
 import { searchLibrary, type LibraryEntry } from '../../lib/library';
 import type { Exercise } from '../../db';
 import { fonts, useTheme, useTopInset } from '../../lib/theme';
-import { groupVariants } from '../../lib/variants';
+import { groupVariants, movementFor } from '../../lib/variants';
 import { Doto, Label } from '../../components/Text';
 import { DOCK_HEIGHT } from '../../components/Dock';
 import { useWorkout } from '../../store/workout';
@@ -41,7 +41,7 @@ export default function PickExercise() {
   };
 
   const fromLibrary = async (e: LibraryEntry) => {
-    const id = await createExercise({ name: e.name, brand: '', movement: '', primary_muscle: e.muscle, equipment: e.equipment, secondary_muscles: e.secondary, library_id: e.id, load: e.equipment === 'bodyweight' ? 'bodyweight' : 'weight' });
+    const id = await createExercise({ name: e.name, brand: '', movement: movementFor(e.name, e.muscle, all), primary_muscle: e.muscle, equipment: e.equipment, secondary_muscles: e.secondary, library_id: e.id, load: e.equipment === 'bodyweight' ? 'bodyweight' : 'weight' });
     const ex = await exerciseById(id);
     if (ex) await pick(ex);
   };

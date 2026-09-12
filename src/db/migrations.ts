@@ -91,6 +91,30 @@ const MIGRATIONS: string[] = [
   `,
   // Free note per exercise: seat height, pin, grip, whatever to remember next time.
   `ALTER TABLE exercises ADD COLUMN notes TEXT NOT NULL DEFAULT '';`,
+  // Library names carry their gear ("Lever Leg Extension"), which split the Moves list into a
+  // row per bit of kit. File each under the bare move so they nest as variants instead. Longest
+  // qualifier first, and each pass skips rows an earlier one already filled.
+  `
+  UPDATE exercises SET movement = SUBSTR(name, 12) WHERE movement = '' AND library_id <> '' AND name LIKE 'Ez Barbell %' AND LENGTH(name) > 11;
+  UPDATE exercises SET movement = SUBSTR(name, 17) WHERE movement = '' AND library_id <> '' AND name LIKE 'Resistance Band %' AND LENGTH(name) > 16;
+  UPDATE exercises SET movement = SUBSTR(name, 15) WHERE movement = '' AND library_id <> '' AND name LIKE 'Medicine Ball %' AND LENGTH(name) > 14;
+  UPDATE exercises SET movement = SUBSTR(name, 17) WHERE movement = '' AND library_id <> '' AND name LIKE 'Olympic Barbell %' AND LENGTH(name) > 16;
+  UPDATE exercises SET movement = SUBSTR(name, 15) WHERE movement = '' AND library_id <> '' AND name LIKE 'Smith Machine %' AND LENGTH(name) > 14;
+  UPDATE exercises SET movement = SUBSTR(name, 10) WHERE movement = '' AND library_id <> '' AND name LIKE 'Trap Bar %' AND LENGTH(name) > 9;
+  UPDATE exercises SET movement = SUBSTR(name, 9) WHERE movement = '' AND library_id <> '' AND name LIKE 'Barbell %' AND LENGTH(name) > 8;
+  UPDATE exercises SET movement = SUBSTR(name, 10) WHERE movement = '' AND library_id <> '' AND name LIKE 'Dumbbell %' AND LENGTH(name) > 9;
+  UPDATE exercises SET movement = SUBSTR(name, 12) WHERE movement = '' AND library_id <> '' AND name LIKE 'Kettlebell %' AND LENGTH(name) > 11;
+  UPDATE exercises SET movement = SUBSTR(name, 12) WHERE movement = '' AND library_id <> '' AND name LIKE 'Bodyweight %' AND LENGTH(name) > 11;
+  UPDATE exercises SET movement = SUBSTR(name, 9) WHERE movement = '' AND library_id <> '' AND name LIKE 'Machine %' AND LENGTH(name) > 8;
+  UPDATE exercises SET movement = SUBSTR(name, 10) WHERE movement = '' AND library_id <> '' AND name LIKE 'Assisted %' AND LENGTH(name) > 9;
+  UPDATE exercises SET movement = SUBSTR(name, 10) WHERE movement = '' AND library_id <> '' AND name LIKE 'Weighted %' AND LENGTH(name) > 9;
+  UPDATE exercises SET movement = SUBSTR(name, 7) WHERE movement = '' AND library_id <> '' AND name LIKE 'Cable %' AND LENGTH(name) > 6;
+  UPDATE exercises SET movement = SUBSTR(name, 7) WHERE movement = '' AND library_id <> '' AND name LIKE 'Lever %' AND LENGTH(name) > 6;
+  UPDATE exercises SET movement = SUBSTR(name, 7) WHERE movement = '' AND library_id <> '' AND name LIKE 'Smith %' AND LENGTH(name) > 6;
+  UPDATE exercises SET movement = SUBSTR(name, 6) WHERE movement = '' AND library_id <> '' AND name LIKE 'Sled %' AND LENGTH(name) > 5;
+  UPDATE exercises SET movement = SUBSTR(name, 6) WHERE movement = '' AND library_id <> '' AND name LIKE 'Band %' AND LENGTH(name) > 5;
+  UPDATE exercises SET movement = '' WHERE movement = name;
+  `,
 ];
 
 export async function migrate(db: SQLiteDatabase): Promise<void> {
