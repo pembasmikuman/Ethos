@@ -33,7 +33,10 @@ export async function scheduleRestDone(seconds: number, body: string): Promise<s
   if (seconds < 1) return null;
   try {
     return await Notifications.scheduleNotificationAsync({
-      content: { title: 'Rest done', body, sound: true },
+      // iOS 'defaultRingtone' is the bell-style ringtone tone, not the short notification blip.
+      // Custom sound files need the expo-notifications `sounds` config plugin and a dev build,
+      // so they can't reach Expo Go.
+      content: { title: 'Rest done', body, sound: Platform.OS === 'ios' ? 'defaultRingtone' : true },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds, channelId: 'rest' },
     });
   } catch {
