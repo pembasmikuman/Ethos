@@ -13,43 +13,39 @@ import { DOCK_HEIGHT } from '../components/Dock';
 import type { ExerciseBlock, Field } from '../store/workout';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 
-/** Ticks on its own so the clock never re-renders the exercise pages. */
-function Elapsed() {
+/** One clock for the whole screen: rest countdown while resting, session elapsed otherwise.
+ *  Lives up here so the tick never re-renders the exercise pages. */
+function HeaderClock({ onFinish }: { onFinish: () => void }) {
   const t = useTheme();
-  const startedAt = useWorkout((s) => s.startedAt);
+  const startedAt = useWorkout((st) => st.startedAt);
+  const rest = useWorkout((st) => st.rest);
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
-  return <Doto size={22} color={t.mute}>{fmtClock((now - startedAt) / 1000)}</Doto>;
-}
-
-/** Mounted only on the active page, and ticks on its own for the same reason. */
-function RestBanner() {
-  const t = useTheme();
-  const rest = useWorkout((s) => s.rest);
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    if (!rest) return;
     setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, [rest]);
+
   const left = rest ? Math.round((rest.endsAt - now) / 1000) : 0;
-  if (!rest || left <= 0) return null;
+  const resting = rest != null && left > 0;
   return (
-    <Pressable onPress={() => router.navigate('/rest')} style={[s.banner, { backgroundColor: t.warnBg, borderColor: t.warnLine }]}>
-      <View style={[s.dot, { backgroundColor: t.accent }]} />
-      <Label color={t.accent} style={{ flex: 1 }}>Resting</Label>
-      <Doto size={18} color={t.accent}>{fmtClock(left)}</Doto>
+    <Pressable
+      onPress={() => (resting ? router.navigate('/rest') : onFinish())}
+      hitSlop={10}
+      style={{ alignItems: 'flex-end', gap: 4 }}
+    >
+      <View style={s.clockLabel}>
+        {resting && <View style={[s.dot, { backgroundColor: t.accent }]} />}
+        <Label color={resting ? t.accent : t.mute}>{resting ? 'Resting' : 'Elapsed'}</Label>
+      </View>
+      <Doto size={22} color={resting ? t.accent : t.mute}>{fmtClock(resting ? left : (now - startedAt) / 1000)}</Doto>
     </Pressable>
   );
 }
 
-type PageProps = { block: ExerciseBlock; active: boolean; focus: { setIdx: number; field: Field } | null; onEdit: () => void };
+type PageProps = { block: ExerciseBlock; focus: { setIdx: number; field: Field } | null; onEdit: () => void };
 
-const ExercisePage = memo(function ExercisePage({ block, active, focus, onEdit }: PageProps) {
+const ExercisePage = memo(function ExercisePage({ block, focus, onEdit }: PageProps) {
   const t = useTheme();
   const { addSet, removeSet, setFocus, setNotes } = useWorkout.getState();
   let working = 0;
@@ -80,7 +76,6 @@ const ExercisePage = memo(function ExercisePage({ block, active, focus, onEdit }
           <Label style={{ flex: 1 }}>Stalled 3 sessions · try −10%</Label>
         </View>
       )}
-      {active && <RestBanner />}
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 4 }}>
         {block.sets.map((set, i) => {
           if (set.type === 'working') working += 1;
@@ -191,10 +186,7 @@ export default function Workout() {
             <Doto size={30} numberOfLines={1}>{block.exercise.name.toUpperCase()}</Doto>
           </Pressable>
         </View>
-        <Pressable onPress={onFinish} hitSlop={10} style={{ alignItems: 'flex-end', gap: 4 }}>
-          <Label>Elapsed</Label>
-          <Elapsed />
-        </Pressable>
+        <HeaderClock onFinish={onFinish} />
       </View>
 
       <ScrollView
@@ -216,8 +208,8 @@ export default function Workout() {
         style={{ flex: 1 }}
       >
         {blocks.map((b, bi) => (
-          <View key={b.exercise.id + bi} style={{ height: pageH || undefined, paddingRight: 14 }}>
-            <ExercisePage block={b} active={bi === exIdx} focus={bi === exIdx ? focus : null} onEdit={openPad} />
+          <View key={b.exercise.id + bi} style={{ height: pageH || undefined, paddingRight: 14, overflow: 'hidden' }}>
+            <ExercisePage block={b} focus={bi === exIdx ? focus : null} onEdit={openPad} />
           </View>
         ))}
       </ScrollView>
@@ -246,5 +238,6 @@ const s = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4 },
   actions: { flexDirection: 'row', gap: 24, paddingHorizontal: 12, paddingVertical: 10 },
   nav: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 4 },
+  clockLabel: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dots: { position: 'absolute', right: 16, top: '38%', gap: 6, alignItems: 'center' },
 });
