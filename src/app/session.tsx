@@ -15,39 +15,44 @@ export default function Session() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const top = useTopInset();
-  const w = useWorkout();
+  const blocks = useWorkout((st) => st.blocks);
+  const sessionId = useWorkout((st) => st.sessionId);
+  const title = useWorkout((st) => st.title);
+  const startedAt = useWorkout((st) => st.startedAt);
+  const exIdx = useWorkout((st) => st.exIdx);
+  const w = useWorkout.getState();
   const [dragging, setDragging] = useState(false);
   const drag = useDragList();
   const [now] = useState(Date.now());
 
-  if (w.blocks.length === 0) return <View style={{ flex: 1, backgroundColor: t.bg }} />;
+  if (blocks.length === 0) return <View style={{ flex: 1, backgroundColor: t.bg }} />;
 
-  const started = w.sessionId !== null;
+  const started = sessionId !== null;
   const open = async (i: number) => { if (!started) await w.begin(); w.setExercise(i); router.push('/workout'); };
   const menu = (i: number) => {
-    const b = w.blocks[i];
+    const b = blocks[i];
     Alert.alert(b.exercise.name, undefined, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Swap', onPress: () => { w.setExercise(i); router.push('/routines/pick?session=swap'); } },
       { text: 'Remove', style: 'destructive', onPress: () => w.removeExercise(i) },
     ]);
   };
-  const add = () => { w.setExercise(w.blocks.length - 1); router.push('/routines/pick?session=add'); };
+  const add = () => { w.setExercise(blocks.length - 1); router.push('/routines/pick?session=add'); };
   const finish = () => started ? Alert.alert('End session?', `${done} of ${total} sets logged.`, [
       { text: 'Keep going', style: 'cancel' },
       { text: 'Cancel session', style: 'destructive', onPress: async () => { await w.cancel(); router.dismissTo('/'); } },
       { text: 'Finish', onPress: async () => { const id = await w.finish(); router.dismissTo('/'); if (id) router.push(`/history/${id}`); } },
     ]) : (w.cancel(), router.dismissTo('/'));
-  const done = w.blocks.reduce((n, b) => n + b.sets.filter((x) => x.done).length, 0);
-  const total = w.blocks.reduce((n, b) => n + b.sets.length, 0);
+  const done = blocks.reduce((n, b) => n + b.sets.filter((x) => x.done).length, 0);
+  const total = blocks.reduce((n, b) => n + b.sets.length, 0);
 
   return (
     <View style={{ flex: 1, backgroundColor: t.bg }}>
     <ScrollView scrollEnabled={!dragging} contentContainerStyle={[s.page, { paddingTop: top + 12, paddingBottom: insets.bottom + DOCK_HEIGHT + (started ? 12 : 104) }]}>
       <View style={s.head}>
         <View style={{ flex: 1, gap: 4 }}>
-          <Label color={started ? t.mute : t.accent}>{started ? `${fmtClock((now - w.startedAt) / 1000)} elapsed` : 'Preview · not started'}</Label>
-          <Doto size={36} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{w.title.toUpperCase()}</Doto>
+          <Label color={started ? t.mute : t.accent}>{started ? `${fmtClock((now - startedAt) / 1000)} elapsed` : 'Preview · not started'}</Label>
+          <Doto size={36} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{title.toUpperCase()}</Doto>
         </View>
         <Pressable onPress={finish} hitSlop={10} style={{ alignItems: 'flex-end', gap: 4 }}>
           <Label color={t.accent}>{started ? 'Finish' : 'Discard'}</Label>
@@ -55,12 +60,12 @@ export default function Session() {
         </Pressable>
       </View>
 
-      {w.blocks.map((b, i) => {
+      {blocks.map((b, i) => {
         const d = b.sets.filter((x) => x.done).length;
         const full = d === b.sets.length && b.sets.length > 0;
-        const current = i === w.exIdx;
+        const current = i === exIdx;
         return (
-          <DragRow key={b.exercise.id} index={i} count={w.blocks.length} drag={drag} onGrab={() => { setDragging(true); tapHaptic(); }} onDrop={(f, to) => { setDragging(false); if (f !== to) w.reorderExercises(f, to); }}>
+          <DragRow key={b.exercise.id} index={i} count={blocks.length} drag={drag} onGrab={() => { setDragging(true); tapHaptic(); }} onDrop={(f, to) => { setDragging(false); if (f !== to) w.reorderExercises(f, to); }}>
             <Pressable onPress={() => open(i)} onLongPress={() => menu(i)} style={({ pressed }) => [s.row, { borderBottomColor: t.line, backgroundColor: t.bg, opacity: pressed ? 0.7 : 1 }]}>
               <Label color={current ? t.accent : t.dim} style={{ width: 22 }}>{String(i + 1).padStart(2, '0')}</Label>
               <Doto size={17} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} color={full ? t.mute : t.text} style={{ flex: 1 }}>{b.exercise.name.toUpperCase()}</Doto>
@@ -86,7 +91,7 @@ export default function Session() {
         style={({ pressed }) => [s.start, { backgroundColor: t.accent, bottom: insets.bottom + DOCK_HEIGHT + 8, transform: [{ scale: pressed ? 0.97 : 1 }] }]}
       >
         <Doto size={26} color={t.bg}>START</Doto>
-        <Label color={t.bg}>{w.blocks.length} exercises · {total} sets</Label>
+        <Label color={t.bg}>{blocks.length} exercises · {total} sets</Label>
       </Pressable>
     )}
     </View>

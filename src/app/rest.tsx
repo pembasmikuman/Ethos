@@ -13,7 +13,11 @@ export default function Rest() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const top = useTopInset();
-  const w = useWorkout();
+  const rest = useWorkout((st) => st.rest);
+  const blocks = useWorkout((st) => st.blocks);
+  const exIdx = useWorkout((st) => st.exIdx);
+  const focus = useWorkout((st) => st.focus);
+  const { adjustRest, skipRest } = useWorkout.getState();
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -21,19 +25,19 @@ export default function Rest() {
     return () => clearInterval(id);
   }, []);
 
-  const left = w.rest ? Math.max(0, (w.rest.endsAt - now) / 1000) : 0;
+  const left = rest ? Math.max(0, (rest.endsAt - now) / 1000) : 0;
 
   useEffect(() => {
-    if (w.rest && left <= 0) {
+    if (rest && left <= 0) {
       doneHaptic();
-      w.skipRest();
+      skipRest();
       router.back();
     }
-  }, [left <= 0, w.rest]);
+  }, [left <= 0, rest]);
 
-  const block = w.blocks[w.exIdx];
-  const next = block?.sets[w.focus.setIdx];
-  const prev = block?.prev[w.focus.setIdx];
+  const block = blocks[exIdx];
+  const next = block?.sets[focus.setIdx];
+  const prev = block?.prev[focus.setIdx];
 
   const btn = (label: string, onPress: () => void, flex = 1, filled = false) => (
     <Pressable
@@ -49,26 +53,26 @@ export default function Rest() {
     <View style={[s.page, { backgroundColor: t.bg, paddingTop: top + 24, paddingBottom: insets.bottom + 16 }]}>
       <View style={s.head}>
         <Label numberOfLines={1}>Rest · {block?.exercise.name}</Label>
-        <Label>Set {w.focus.setIdx + 1} of {block?.sets.length}</Label>
+        <Label>Set {focus.setIdx + 1} of {block?.sets.length}</Label>
       </View>
 
       <View style={s.ring}>
-        <DotRing size={300} count={72} fraction={w.rest ? left / w.rest.total : 0} on={t.accent} off={t.dim} />
+        <DotRing size={300} count={72} fraction={rest ? left / rest.total : 0} on={t.accent} off={t.dim} />
         <View style={s.center}>
           <Doto size={88}>{fmtClock(left)}</Doto>
-          <Label>of {fmtClock(w.rest?.total ?? 0)}</Label>
+          <Label>of {fmtClock(rest?.total ?? 0)}</Label>
         </View>
       </View>
 
       <View style={s.controls}>
-        {btn('−30', () => w.adjustRest(-30))}
-        {btn('+30', () => w.adjustRest(30))}
-        {btn('Skip', async () => { await w.skipRest(); router.back(); }, 1.4, true)}
+        {btn('−30', () => adjustRest(-30))}
+        {btn('+30', () => adjustRest(30))}
+        {btn('Skip', async () => { await skipRest(); router.back(); }, 1.4, true)}
       </View>
 
       {next && (
         <View style={[s.next, { backgroundColor: t.card, borderColor: t.line }]}>
-          <Label>Up next · Set {w.focus.setIdx + 1}</Label>
+          <Label>Up next · Set {focus.setIdx + 1}</Label>
           <View style={s.nums}>
             <Doto size={34}>{next.weight || '–'}</Doto><Label color={t.dim}>kg</Label>
             <Doto size={34}>{block.exercise.target_rep_max}</Doto><Label color={t.dim}>target</Label>

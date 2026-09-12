@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,12 +10,48 @@ import { Doto, Label } from '../components/Text';
 import { Numpad } from '../components/Numpad';
 import { SetRow } from '../components/SetRow';
 import { DOCK_HEIGHT } from '../components/Dock';
-import type { ExerciseBlock } from '../store/workout';
+import type { ExerciseBlock, Field } from '../store/workout';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 
-function ExercisePage({ block, active, restLeft, onEdit }: { block: ExerciseBlock; active: boolean; restLeft: number; onEdit: () => void }) {
+/** Ticks on its own so the clock never re-renders the exercise pages. */
+function Elapsed() {
   const t = useTheme();
-  const w = useWorkout();
+  const startedAt = useWorkout((s) => s.startedAt);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return <Doto size={22} color={t.mute}>{fmtClock((now - startedAt) / 1000)}</Doto>;
+}
+
+/** Mounted only on the active page, and ticks on its own for the same reason. */
+function RestBanner() {
+  const t = useTheme();
+  const rest = useWorkout((s) => s.rest);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (!rest) return;
+    setNow(Date.now());
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [rest]);
+  const left = rest ? Math.round((rest.endsAt - now) / 1000) : 0;
+  if (!rest || left <= 0) return null;
+  return (
+    <Pressable onPress={() => router.navigate('/rest')} style={[s.banner, { backgroundColor: t.warnBg, borderColor: t.warnLine }]}>
+      <View style={[s.dot, { backgroundColor: t.accent }]} />
+      <Label color={t.accent} style={{ flex: 1 }}>Resting</Label>
+      <Doto size={18} color={t.accent}>{fmtClock(left)}</Doto>
+    </Pressable>
+  );
+}
+
+type PageProps = { block: ExerciseBlock; active: boolean; focus: { setIdx: number; field: Field } | null; onEdit: () => void };
+
+const ExercisePage = memo(function ExercisePage({ block, active, focus, onEdit }: PageProps) {
+  const t = useTheme();
+  const { addSet, removeSet, setFocus, setNotes } = useWorkout.getState();
   let working = 0;
   return (
     <View style={{ flex: 1, gap: 12 }}>
@@ -33,7 +69,7 @@ function ExercisePage({ block, active, restLeft, onEdit }: { block: ExerciseBloc
         </View>
       )}
       <Pressable
-        onPress={() => Alert.prompt('Note · ' + block.exercise.name, 'Seat, pin, grip. Shows every time.', (v) => w.setNotes(block.exercise.id, v.trim()), 'plain-text', block.exercise.notes)}
+        onPress={() => Alert.prompt('Note · ' + block.exercise.name, 'Seat, pin, grip. Shows every time.', (v) => setNotes(block.exercise.id, v.trim()), 'plain-text', block.exercise.notes)}
         style={[s.banner, { backgroundColor: 'transparent', borderColor: t.line, borderStyle: block.exercise.notes ? 'solid' : 'dashed' }]}
       >
         <Label color={block.exercise.notes ? t.text : t.dim} style={{ flex: 1 }}>{block.exercise.notes || 'Add a note for this exercise'}</Label>
@@ -44,13 +80,7 @@ function ExercisePage({ block, active, restLeft, onEdit }: { block: ExerciseBloc
           <Label style={{ flex: 1 }}>Stalled 3 sessions · try −10%</Label>
         </View>
       )}
-      {active && w.rest && restLeft > 0 && (
-        <Pressable onPress={() => router.push('/rest')} style={[s.banner, { backgroundColor: t.warnBg, borderColor: t.warnLine }]}>
-          <View style={[s.dot, { backgroundColor: t.accent }]} />
-          <Label color={t.accent} style={{ flex: 1 }}>Resting</Label>
-          <Doto size={18} color={t.accent}>{fmtClock(restLeft)}</Doto>
-        </Pressable>
-      )}
+      {active && <RestBanner />}
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 4 }}>
         {block.sets.map((set, i) => {
           if (set.type === 'working') working += 1;
@@ -61,7 +91,7 @@ function ExercisePage({ block, active, restLeft, onEdit }: { block: ExerciseBloc
               friction={2}
               rightThreshold={64}
               overshootRight={false}
-              onSwipeableOpen={() => { tapHaptic(); w.removeSet(i); }}
+              onSwipeableOpen={() => { tapHaptic(); removeSet(i); }}
               renderRightActions={() => (
                 <View style={{ width: 96, alignItems: 'center', justifyContent: 'center' }}><Label color={t.accent}>Remove</Label></View>
               )}
@@ -74,76 +104,75 @@ function ExercisePage({ block, active, restLeft, onEdit }: { block: ExerciseBloc
               targetMax={block.exercise.target_rep_max}
               load={block.exercise.load}
               perSide={block.exercise.per_side === 1}
-              active={active && i === w.focus.setIdx}
-              focusField={active && i === w.focus.setIdx ? w.focus.field : null}
-              onFocus={(f) => { w.setFocus(i, f); onEdit(); }}
+              active={focus != null && i === focus.setIdx}
+              focusField={focus != null && i === focus.setIdx ? focus.field : null}
+              onFocus={(f) => { setFocus(i, f); onEdit(); }}
             />
             </Swipeable>
           );
         })}
         <View style={s.actions}>
-          <Pressable onPress={() => w.addSet('warmup')} hitSlop={8}><Label color={t.warm}>+ Warmups</Label></Pressable>
-          <Pressable onPress={() => w.addSet()} hitSlop={8}><Label>+ Set</Label></Pressable>
+          <Pressable onPress={() => addSet('warmup')} hitSlop={8}><Label color={t.warm}>+ Warmups</Label></Pressable>
+          <Pressable onPress={() => addSet()} hitSlop={8}><Label>+ Set</Label></Pressable>
         </View>
       </ScrollView>
     </View>
   );
-}
+});
 
 export default function Workout() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const top = useTopInset();
-  const w = useWorkout();
-  const block = w.blocks[w.exIdx];
-  const [now, setNow] = useState(Date.now());
+  const title = useWorkout((st) => st.title);
+  const blocks = useWorkout((st) => st.blocks);
+  const exIdx = useWorkout((st) => st.exIdx);
+  const focus = useWorkout((st) => st.focus);
+  const block = blocks[exIdx];
   const [pageH, setPageH] = useState(0);
   const [padOpen, setPadOpen] = useState(true);
   const pager = useRef<ScrollView>(null);
-  const shown = useRef(w.exIdx);
+  const shown = useRef(exIdx);
+  const openPad = useCallback(() => setPadOpen(true), []);
 
   // Follow exIdx changes made elsewhere (overview, prev/next).
   useEffect(() => {
-    if (shown.current === w.exIdx || !pageH) return;
-    shown.current = w.exIdx;
-    pager.current?.scrollTo({ y: w.exIdx * pageH, animated: true });
-  }, [w.exIdx, pageH]);
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
+    if (shown.current === exIdx || !pageH) return;
+    shown.current = exIdx;
+    pager.current?.scrollTo({ y: exIdx * pageH, animated: true });
+  }, [exIdx, pageH]);
 
   if (!block) return null;
 
-  const focusedSet = block.sets[w.focus.setIdx];
+  const focusedSet = block.sets[focus.setIdx];
   const onKey = (k: string) => {
     if (!focusedSet) return;
-    const max = w.focus.field === 'weight' ? 5 : 2;
-    if ((k === '+' || k === '-' || k === '.') && w.focus.field !== 'weight') return;
-    w.input(applyKey(focusedSet[w.focus.field], k, max));
+    const max = focus.field === 'weight' ? 5 : 2;
+    if ((k === '+' || k === '-' || k === '.') && focus.field !== 'weight') return;
+    useWorkout.getState().input(applyKey(focusedSet[focus.field], k, max));
   };
   const nextField = (): 'reps' | 'rir' | null => {
-    if (w.focus.field === 'weight') return 'reps';
-    if (w.focus.field === 'reps' && focusedSet?.type === 'working') return 'rir';
+    if (focus.field === 'weight') return 'reps';
+    if (focus.field === 'reps' && focusedSet?.type === 'working') return 'rir';
     return null;
   };
   const onDone = async () => {
+    const w = useWorkout.getState();
     const nf = nextField();
     if (nf) {
-      w.setFocus(w.focus.setIdx, nf);
+      w.setFocus(focus.setIdx, nf);
       return;
     }
     await w.completeSet();
     doneHaptic();
-    if (useWorkout.getState().rest) router.push('/rest');
+    if (useWorkout.getState().rest) router.navigate('/rest');
   };
   const doneLabel = nextField() ? `Next · ${nextField()}` : 'Done · Start rest';
   const onFinish = () =>
     Alert.alert('End workout?', 'Finish saves it. Cancel deletes every set logged this session.', [
       { text: 'Keep going', style: 'cancel' },
-      { text: 'Cancel session', style: 'destructive', onPress: async () => { await w.cancel(); router.dismissTo('/'); } },
-      { text: 'Finish', onPress: async () => { await w.finish(); router.dismissTo('/'); } },
+      { text: 'Cancel session', style: 'destructive', onPress: async () => { await useWorkout.getState().cancel(); router.dismissTo('/'); } },
+      { text: 'Finish', onPress: async () => { await useWorkout.getState().finish(); router.dismissTo('/'); } },
     ]);
 
   const onExerciseMenu = () =>
@@ -153,20 +182,18 @@ export default function Workout() {
       { text: 'Swap this exercise', onPress: () => router.push('/routines/pick?session=swap') },
     ]);
 
-  const restLeft = w.rest ? Math.round((w.rest.endsAt - now) / 1000) : 0;
-
   return (
     <View style={[s.page, { backgroundColor: t.bg, paddingTop: top + 8, paddingBottom: insets.bottom + DOCK_HEIGHT }]}>
       <View style={s.head}>
         <View style={{ gap: 4, flex: 1 }}>
-          <Pressable onPress={() => router.navigate('/session')} hitSlop={8}><Label color={t.accent}>‹ {w.title} · {w.exIdx + 1} / {w.blocks.length}</Label></Pressable>
+          <Pressable onPress={() => router.navigate('/session')} hitSlop={8}><Label color={t.accent}>‹ {title} · {exIdx + 1} / {blocks.length}</Label></Pressable>
           <Pressable onPress={onExerciseMenu} hitSlop={8}>
             <Doto size={30} numberOfLines={1}>{block.exercise.name.toUpperCase()}</Doto>
           </Pressable>
         </View>
         <Pressable onPress={onFinish} hitSlop={10} style={{ alignItems: 'flex-end', gap: 4 }}>
           <Label>Elapsed</Label>
-          <Doto size={22} color={t.mute}>{fmtClock((now - w.startedAt) / 1000)}</Doto>
+          <Elapsed />
         </Pressable>
       </View>
 
@@ -180,27 +207,27 @@ export default function Workout() {
         onLayout={(e) => {
           const h = e.nativeEvent.layout.height;
           setPageH(h);
-          pager.current?.scrollTo({ y: w.exIdx * h, animated: false });
+          pager.current?.scrollTo({ y: exIdx * h, animated: false });
         }}
         onMomentumScrollEnd={(e) => {
           const i = Math.round(e.nativeEvent.contentOffset.y / pageH);
-          if (i !== shown.current) { shown.current = i; tapHaptic(); w.setExercise(i); }
+          if (i !== shown.current) { shown.current = i; tapHaptic(); useWorkout.getState().setExercise(i); }
         }}
         style={{ flex: 1 }}
       >
-        {w.blocks.map((b, bi) => (
+        {blocks.map((b, bi) => (
           <View key={b.exercise.id + bi} style={{ height: pageH || undefined, paddingRight: 14 }}>
-            <ExercisePage block={b} active={bi === w.exIdx} restLeft={restLeft} onEdit={() => setPadOpen(true)} />
+            <ExercisePage block={b} active={bi === exIdx} focus={bi === exIdx ? focus : null} onEdit={openPad} />
           </View>
         ))}
       </ScrollView>
       <View pointerEvents="none" style={s.dots}>
-        {w.blocks.map((b, i) => <View key={i} style={{ width: 6, height: i === w.exIdx ? 14 : 6, borderRadius: 3, backgroundColor: i === w.exIdx ? t.accent : b.sets.length > 0 && b.sets.every((x) => x.done) ? t.green : t.dim }} />)}
+        {blocks.map((b, i) => <View key={i} style={{ width: 6, height: i === exIdx ? 14 : 6, borderRadius: 3, backgroundColor: i === exIdx ? t.accent : b.sets.length > 0 && b.sets.every((x) => x.done) ? t.green : t.dim }} />)}
       </View>
 
       <View style={s.nav}>
         <Label color={t.dim} numberOfLines={1} style={{ flex: 1 }}>
-          {w.blocks[w.exIdx + 1] ? `↓ Next · ${w.blocks[w.exIdx + 1].exercise.name}` : 'Last exercise'}
+          {blocks[exIdx + 1] ? `↓ Next · ${blocks[exIdx + 1].exercise.name}` : 'Last exercise'}
         </Label>
         <Pressable onPress={() => setPadOpen(!padOpen)} hitSlop={10}>
           <Label color={t.accent}>{padOpen ? 'Hide keypad ⌄' : 'Keypad ⌃'}</Label>
