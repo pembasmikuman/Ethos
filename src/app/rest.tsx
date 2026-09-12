@@ -17,7 +17,7 @@ export default function Rest() {
   const blocks = useWorkout((st) => st.blocks);
   const exIdx = useWorkout((st) => st.exIdx);
   const focus = useWorkout((st) => st.focus);
-  const { adjustRest, skipRest } = useWorkout.getState();
+  const { adjustRest, skipRest, restDone } = useWorkout.getState();
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export default function Rest() {
   useEffect(() => {
     if (rest && left <= 0) {
       doneHaptic();
-      skipRest();
+      restDone();
       router.back();
     }
   }, [left <= 0, rest]);

@@ -45,7 +45,8 @@
           "photosPermission": "Attach photos to a session.",
           "cameraPermission": "Take a photo for a session."
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "extra": {
       "router": {},

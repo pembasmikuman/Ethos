@@ -1,5 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import * as Haptics from 'expo-haptics';
+import { Asset } from 'expo-asset';
+import { Directory, File, Paths } from 'expo-file-system';
 import { Platform } from 'react-native';
 
 Notifications.setNotificationHandler({
@@ -21,6 +23,38 @@ if (Platform.OS === 'android') {
   }).catch(() => {});
 }
 
+const BELL = 'bell.wav';
+let bell: Promise<string | null> | null = null;
+
+/** iOS looks up a notification sound name in the app bundle and in `Library/Sounds`
+ *  inside the app's own container. The bundle is out of reach under Expo Go, but the
+ *  container folder is writable, so copy the bell there on first use and refer to it
+ *  by name. Resolves to null if anything fails, and the caller falls back to the
+ *  system sound. */
+function installBell(): Promise<string | null> {
+  bell ??= (async () => {
+    try {
+      if (Platform.OS !== 'ios') return null;
+      const dir = new Directory(Paths.document.uri.replace(/\/Documents\/.*$/, '/Library/Sounds/'));
+      if (!dir.exists) dir.create({ intermediates: true });
+      const dest = new File(dir, BELL);
+      const asset = Asset.fromModule(require('../../assets/bell.wav'));
+      await asset.downloadAsync();
+      if (!asset.localUri) return null;
+      const src = new File(asset.localUri);
+      if (dest.exists && dest.size === src.size) return BELL;
+      await src.copy(dest, { overwrite: true });
+      return BELL;
+    } catch {
+      return null;
+    }
+  })();
+  return bell;
+}
+
+// Warm the copy at startup so the first completed set doesn't wait on it.
+installBell();
+
 let permissionAsked = false;
 
 /** Schedule a local notification `seconds` from now. Returns notification id. */
@@ -31,12 +65,10 @@ export async function scheduleRestDone(seconds: number, body: string): Promise<s
     if (status !== 'granted') await Notifications.requestPermissionsAsync();
   }
   if (seconds < 1) return null;
+  const sound = (await installBell()) ?? true;
   try {
     return await Notifications.scheduleNotificationAsync({
-      // iOS 'defaultRingtone' is the bell-style ringtone tone, not the short notification blip.
-      // Custom sound files need the expo-notifications `sounds` config plugin and a dev build,
-      // so they can't reach Expo Go.
-      content: { title: 'Rest done', body, sound: Platform.OS === 'ios' ? 'defaultRingtone' : true },
+      content: { title: 'Rest done', body, sound },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds, channelId: 'rest' },
     });
   } catch {
@@ -55,3 +87,4 @@ export function tapHaptic(): void {
 export function doneHaptic(): void {
   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
 }
+

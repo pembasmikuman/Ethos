@@ -35,6 +35,9 @@ type State = {
   completeSet: () => Promise<void>;
   adjustRest: (deltaSeconds: number) => Promise<void>;
   skipRest: () => Promise<void>;
+  /** Rest ran out on its own. Clears the timer but leaves the scheduled alert alone,
+   *  so the bell still rings instead of being cancelled a moment before it fires. */
+  restDone: () => void;
   finish: () => Promise<string | null>;
   setNotes: (exerciseId: string, notes: string) => Promise<void>;
   cancel: () => Promise<void>;
@@ -186,6 +189,10 @@ export const useWorkout = create<State>((set, get) => ({
     const secs = Math.round((endsAt - Date.now()) / 1000);
     const notifId = await scheduleRestDone(secs, blocks[exIdx].exercise.name);
     set({ rest: { ...rest, endsAt, total: Math.max(rest.total + delta, secs), notifId } });
+  },
+
+  restDone() {
+    set({ rest: null });
   },
 
   async skipRest() {
