@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { deleteSession, deleteSet, sessionById, sessionSets, updateSet, type SessionRow } from '../../db/queries';
+import { deleteSession, deleteSet, exerciseById, insertSet, sessionById, sessionSets, updateSet, type SessionRow } from '../../db/queries';
 import { useTheme, useTopInset } from '../../lib/theme';
 import { applyKey, fmtKg } from '../../lib/format';
 import { epley1RM, weeklyVolume } from '../../lib/progression';
@@ -18,13 +18,15 @@ import { useUi } from '../../store/ui';
 
 type SetRow = Awaited<ReturnType<typeof sessionSets>>[number];
 type Field = 'weight' | 'reps' | 'rir';
-type Edit = { id: string; field: Field; weight: string; reps: string; rir: string };
+/** A set being edited, or, when `id` is null, a new set being typed in. */
+type Edit = { id: string | null; exercise_id: string; name: string; warmup: boolean; field: Field; weight: string; reps: string; rir: string };
+type Group = { name: string; exercise_id: string; target: number; notes: string; sets: SetRow[] };
 
 export default function SessionDetail() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const top = useTopInset();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, done } = useLocalSearchParams<{ id: string; done?: string }>();
   const [session, setSession] = useState<SessionRow | null>(null);
   const [sets, setSets] = useState<SetRow[]>([]);
   const [edit, setEdit] = useState<Edit | null>(null);
@@ -38,24 +40,42 @@ export default function SessionDetail() {
   };
   useEffect(load, [id]);
 
+  const pending = useUi((s) => s.pendingExercise);
+  const clearPending = useUi((s) => s.clearPendingExercise);
   const setDockHidden = useUi((s) => s.setDockHidden);
   useEffect(() => {
     setDockHidden(edit !== null);
     return () => setDockHidden(false);
   }, [edit !== null]);
 
+  /** Type a brand new set for an exercise, weight prefilled from its last set here. */
+  const beginNew = (exercise_id: string, name: string, weight = '') =>
+    setEdit({ id: null, exercise_id, name, warmup: false, field: 'weight', weight, reps: '', rir: '' });
+
+  // The picker hands the exercise back through the store, so pop back here and the
+  // numpad is already open on set 1 of it.
+  useEffect(() => {
+    if (!pending) return;
+    clearPending();
+    exerciseById(pending).then((ex) => ex && beginNew(ex.id, ex.brand ? `${ex.name} · ${ex.brand}` : ex.name));
+  }, [pending]);
+
   if (!session) return null;
   const { date, mins } = sessionMeta(session);
 
-  const groups: { name: string; exercise_id: string; target: number; notes: string; sets: SetRow[] }[] = [];
+  const groups: Group[] = [];
   for (const s of sets) {
     let g = groups.find((x) => x.name === s.name);
     if (!g) groups.push((g = { name: s.name, exercise_id: s.exercise_id, target: s.target_rep_max, notes: s.notes, sets: [] }));
     g.sets.push(s);
   }
+  // A brand new exercise has no sets yet, so give it a card of its own to be typed into.
+  if (edit && edit.id === null && !groups.some((g) => g.exercise_id === edit.exercise_id)) {
+    groups.push({ name: edit.name, exercise_id: edit.exercise_id, target: 0, notes: '', sets: [] });
+  }
 
   const beginEdit = (x: SetRow, field: Field) =>
-    setEdit({ id: x.id, field, weight: fmtKg(x.weight), reps: String(x.reps), rir: x.rir == null ? '' : String(x.rir) });
+    setEdit({ id: x.id, exercise_id: x.exercise_id, name: x.name, warmup: x.set_type === 'warmup', field, weight: fmtKg(x.weight), reps: String(x.reps), rir: x.rir == null ? '' : String(x.rir) });
 
   const onKey = (k: string) => {
     if (!edit) return;
@@ -65,20 +85,25 @@ export default function SessionDetail() {
 
   const nextField = (): Field | null => {
     if (!edit) return null;
-    const warm = sets.find((x) => x.id === edit.id)?.set_type === 'warmup';
     if (edit.field === 'weight') return 'reps';
-    if (edit.field === 'reps' && !warm) return 'rir';
+    if (edit.field === 'reps' && !edit.warmup) return 'rir';
     return null;
   };
 
   const onDone = async () => {
     if (!edit) return;
+    if (edit.field === 'weight' && edit.weight === '') return;
     const nf = nextField();
     if (nf) return setEdit({ ...edit, field: nf });
     const weight = parseFloat(edit.weight);
     const reps = parseInt(edit.reps, 10);
     if (Number.isNaN(weight) || Number.isNaN(reps)) return;
-    await updateSet(edit.id, weight, reps, edit.rir === '' ? null : parseInt(edit.rir, 10));
+    const rir = edit.rir === '' ? null : parseInt(edit.rir, 10);
+    if (edit.id) await updateSet(edit.id, weight, reps, rir);
+    else {
+      const n = sets.filter((x) => x.exercise_id === edit.exercise_id && x.set_type === 'working').length;
+      await insertSet({ session_id: id, exercise_id: edit.exercise_id, set_number: n + 1, set_type: 'working', weight, reps, rir });
+    }
     doneHaptic();
     setEdit(null);
     load();
@@ -123,7 +148,7 @@ export default function SessionDetail() {
       <ScrollView contentContainerStyle={[st.page, { paddingTop: top + 12, paddingBottom: (edit ? 12 : insets.bottom + DOCK_HEIGHT + 12) }]}>
         <Pressable onPress={() => edit && setEdit(null)} style={StyleSheet.absoluteFill} />
         <Pressable onPress={() => router.back()} hitSlop={10} style={{ paddingHorizontal: 4, minHeight: 44, justifyContent: 'center' }}>
-          <Label color={t.text}>‹ History</Label>
+          <Label color={t.text}>{done ? '‹ Done' : '‹ History'}</Label>
         </Pressable>
         <View style={st.head}>
           <Doto size={34}>{session.title.toUpperCase()}</Doto>
@@ -179,9 +204,33 @@ export default function SessionDetail() {
                   </Pressable>
                 );
               })}
+              {edit && edit.id === null && edit.exercise_id === g.exercise_id && (
+                <View style={[st.set, { borderColor: t.accent }]}>
+                  <Label color={t.accent} style={{ width: 26 }}>{String(g.sets.filter((x) => x.set_type === 'working').length + 1)}</Label>
+                  {(['weight', 'reps', 'rir'] as Field[]).map((f) => (
+                    <Pressable key={f} onPress={() => setEdit({ ...edit, field: f })} style={st.cell} hitSlop={6}>
+                      <Doto size={22} color={edit.field === f ? t.accent : t.text}>{edit[f] || '–'}</Doto>
+                      <Label color={t.dim}>{f === 'weight' ? 'kg' : f}</Label>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+              <Pressable
+                onPress={() => beginNew(g.exercise_id, g.name, fmtKg(g.sets[g.sets.length - 1]?.weight ?? 0))}
+                style={({ pressed }) => [st.addSet, { borderColor: t.line, opacity: pressed ? 0.6 : 1 }]}
+              >
+                <Label color={t.accent}>+ SET</Label>
+              </Pressable>
             </View>
           );
         })}
+
+        <Pressable
+          onPress={() => router.push(`/routines/pick?log=${id}`)}
+          style={({ pressed }) => [st.addExercise, { borderColor: t.line, opacity: pressed ? 0.7 : 1 }]}
+        >
+          <Label color={t.accent}>+ ADD EXERCISE</Label>
+        </Pressable>
 
         <Pressable onPress={confirmDeleteSession} style={[st.danger, { borderColor: t.line }]}>
           <Label color={t.accent}>Delete session</Label>
@@ -207,6 +256,8 @@ const st = StyleSheet.create({
   card: { padding: 14, borderRadius: 16, borderWidth: 1, gap: 4 },
   set: { flexDirection: 'row', alignItems: 'baseline', gap: 10, minHeight: 44, paddingHorizontal: 6, borderRadius: 10, borderWidth: 1 },
   cell: { flexDirection: 'row', alignItems: 'baseline', gap: 6, paddingVertical: 8 },
+  addSet: { alignItems: 'center', justifyContent: 'center', minHeight: 40, marginTop: 4, borderRadius: 10, borderWidth: 1, borderStyle: 'dashed' },
+  addExercise: { alignItems: 'center', justifyContent: 'center', minHeight: 56, borderRadius: 14, borderWidth: 1, borderStyle: 'dashed' },
   danger: { alignItems: 'center', justifyContent: 'center', minHeight: 56, borderRadius: 14, borderWidth: 1, marginTop: 8 },
   pad: { paddingHorizontal: 16, paddingTop: 8, borderTopWidth: 1 },
   photo: { width: 96, height: 96, borderRadius: 12, borderWidth: 1 },

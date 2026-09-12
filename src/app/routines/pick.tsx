@@ -10,9 +10,10 @@ import { groupVariants } from '../../lib/variants';
 import { Doto, Label } from '../../components/Text';
 import { DOCK_HEIGHT } from '../../components/Dock';
 import { useWorkout } from '../../store/workout';
+import { useUi } from '../../store/ui';
 
 export default function PickExercise() {
-  const { routine, replace, session } = useLocalSearchParams<{ routine?: string; replace?: string; session?: 'add' | 'swap' }>();
+  const { routine, replace, session, log } = useLocalSearchParams<{ routine?: string; replace?: string; session?: 'add' | 'swap'; log?: string }>();
   const addToSession = useWorkout((s) => s.addExercise);
   const blocks = useWorkout((s) => s.blocks);
   const t = useTheme();
@@ -30,7 +31,10 @@ export default function PickExercise() {
   }, [routine]);
 
   const pick = async (e: Exercise) => {
-    if (session) await addToSession(e, session === 'swap');
+    // `log` means we came from a finished session's review screen, which opens the
+    // numpad for the chosen exercise once we pop back to it.
+    if (log) useUi.getState().setPendingExercise(e.id);
+    else if (session) await addToSession(e, session === 'swap');
     else if (replace) await replaceRoutineExercise(replace, e.id);
     else if (routine) await addRoutineExercise(routine, e.id);
     router.back();

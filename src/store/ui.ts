@@ -26,6 +26,11 @@ type Ui = {
   customSound: string | null;
   customSoundLabel: string | null;
   setCustomSound: (file: string, label: string) => void;
+  /** Exercise the picker chose while reviewing a finished session. Not persisted: it is
+   *  a hand-off between the picker and the review screen, read once and cleared. */
+  pendingExercise: string | null;
+  setPendingExercise: (id: string) => void;
+  clearPendingExercise: () => void;
 };
 
 const DEFAULT_MUSCLES = ['chest', 'back', 'quads', 'hamstrings', 'delts', 'biceps', 'triceps'];
@@ -72,6 +77,9 @@ export const useUi = create<Ui>((set) => ({
     set({ customSound: file, customSoundLabel: label, restSound: 'custom' });
     Storage.setItemSync(RKEY, 'custom');
   },
+  pendingExercise: null,
+  setPendingExercise: (pendingExercise) => set({ pendingExercise }),
+  clearPendingExercise: () => set({ pendingExercise: null }),
   onboarded: Storage.getItemSync('onboarded') === '1',
   setOnboarded: () => { Storage.setItemSync('onboarded', '1'); set({ onboarded: true }); },
   volumeMuscles: initialMuscles,

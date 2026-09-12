@@ -170,7 +170,7 @@ export default function Workout() {
     Alert.alert('End workout?', 'Finish saves it. Cancel deletes every set logged this session.', [
       { text: 'Keep going', style: 'cancel' },
       { text: 'Cancel session', style: 'destructive', onPress: async () => { await useWorkout.getState().cancel(); router.dismissTo('/'); } },
-      { text: 'Finish', onPress: async () => { await useWorkout.getState().finish(); router.dismissTo('/'); } },
+      { text: 'Finish', onPress: async () => { const id = await useWorkout.getState().finish(); router.dismissTo('/'); if (id) router.push(`/history/${id}?done=1`); } },
     ]);
 
   const onExerciseMenu = () =>
