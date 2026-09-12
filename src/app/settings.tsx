@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, useTopInset } from '../lib/theme';
 import { backupSummary, exportBackup, pickBackup, restoreBackup } from '../lib/backup';
-import { tapHaptic } from '../lib/rest';
+import { pickRestSound, scheduleRestDone, tapHaptic } from '../lib/rest';
 import { Doto, Label } from '../components/Text';
 import { DOCK_HEIGHT } from '../components/Dock';
-import { useUi, type Appearance } from '../store/ui';
+import { useUi, type Appearance, type RestSound } from '../store/ui';
 
 export default function Settings() {
   const t = useTheme();
@@ -16,6 +16,9 @@ export default function Settings() {
   const [note, setNote] = useState<string | null>(null);
   const appearance = useUi((s) => s.appearance);
   const setAppearance = useUi((s) => s.setAppearance);
+  const restSound = useUi((s) => s.restSound);
+  const setRestSound = useUi((s) => s.setRestSound);
+  const customSoundLabel = useUi((s) => s.customSoundLabel);
 
   const run = async (label: string, fn: () => Promise<string | void>) => {
     if (busy) return;
@@ -41,6 +44,20 @@ export default function Settings() {
           { text: 'Replace', style: 'destructive', onPress: async () => { await restoreBackup(b); resolve('Restored'); } },
         ]);
       });
+    });
+
+  const onPickSound = () =>
+    run('sound', async () => {
+      const name = await pickRestSound();
+      return name ? `Using ${name}` : '';
+    });
+
+  // iOS plays the file only if it is a wav, aiff or caf under 30 seconds, and falls back
+  // to the system sound silently otherwise. Ringing one is the only way to know.
+  const onTestSound = () =>
+    run('test', async () => {
+      await scheduleRestDone(2, 'Sound test');
+      return 'Ringing in 2 seconds';
     });
 
   const row = (title: string, sub: string, onPress: () => void, danger = false) => (
@@ -71,6 +88,23 @@ export default function Settings() {
           );
         })}
       </View>
+      {Platform.OS === 'ios' && (
+        <>
+          <Label style={s.section}>Rest alert sound</Label>
+          <View style={[s.seg, { backgroundColor: t.card, borderColor: t.line }]}>
+            {(['bell', 'system', 'custom'] as RestSound[]).map((r) => {
+              const on = r === restSound;
+              return (
+                <Pressable key={r} onPressIn={tapHaptic} onPress={() => setRestSound(r)} style={[s.segItem, { backgroundColor: on ? t.bg : 'transparent', borderColor: on ? t.line : 'transparent' }]}>
+                  <Label color={on ? t.accent : t.mute}>{r}</Label>
+                </Pressable>
+              );
+            })}
+          </View>
+          {row('PICK A SOUND', customSoundLabel ? `Now using ${customSoundLabel}. Tap to change.` : 'Choose a wav, aiff or caf file under 30 seconds', onPickSound)}
+          {row('TEST', 'Rings in 2 seconds. If you hear the default alert, that file is not a format iOS can play.', onTestSound)}
+        </>
+      )}
       <Label style={s.section}>Backup</Label>
       {row('EXPORT', 'Save a JSON snapshot to Files, iCloud or Drive', () => run('export', exportBackup))}
       {row('RESTORE', 'Pick a backup file. Replaces all current data.', onRestore, true)}

@@ -1,8 +1,10 @@
 import * as Notifications from 'expo-notifications';
 import * as Haptics from 'expo-haptics';
 import { Asset } from 'expo-asset';
+import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import { Platform } from 'react-native';
+import { useUi } from '../store/ui';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -23,37 +25,78 @@ if (Platform.OS === 'android') {
   }).catch(() => {});
 }
 
-const BELL = 'bell.wav';
-let bell: Promise<string | null> | null = null;
+// iOS looks up a notification sound name in the app bundle and in `Library/Sounds`
+// inside the app's own container. The bundle is out of reach under Expo Go, but that
+// folder is writable, so sounds are copied there and referred to by name. The folder
+// belongs to Expo Go and is shared with every project it runs, hence the prefix.
+const BELL = 'ethos-bell.wav';
+const CUSTOM = 'ethos-custom';
+// iOS plays aiff, wav and caf only, under 30 seconds. Anything else falls back to the
+// system sound with no error, which is why the settings screen has a Test button.
+const AUDIO_TYPES = ['audio/wav', 'audio/x-wav', 'audio/aiff', 'audio/x-aiff', 'audio/x-caf'];
 
-/** iOS looks up a notification sound name in the app bundle and in `Library/Sounds`
- *  inside the app's own container. The bundle is out of reach under Expo Go, but the
- *  container folder is writable, so copy the bell there on first use and refer to it
- *  by name. Resolves to null if anything fails, and the caller falls back to the
- *  system sound. */
-function installBell(): Promise<string | null> {
-  bell ??= (async () => {
+function soundsDir(): Directory {
+  return new Directory(Paths.document.uri.replace(/\/Documents\/.*$/, '/Library/Sounds/'));
+}
+
+/** Copy `src` into Library/Sounds as `name`, skipping the copy if an identical one is
+ *  already there. Returns `name`, or null if it could not be placed. */
+async function place(src: File, name: string): Promise<string | null> {
+  try {
+    const dir = soundsDir();
+    if (!dir.exists) dir.create({ intermediates: true });
+    const dest = new File(dir, name);
+    if (dest.exists && dest.size === src.size) return name;
+    await src.copy(dest, { overwrite: true });
+    return name;
+  } catch {
+    return null;
+  }
+}
+
+async function installBell(): Promise<string | null> {
+  try {
+    const asset = Asset.fromModule(require('../../assets/bell.wav'));
+    await asset.downloadAsync();
+    return asset.localUri ? await place(new File(asset.localUri), BELL) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Let the user pick an audio file and make it the rest alert. Returns its name, or
+ *  null if they cancelled. Throws if the file could not be installed. */
+export async function pickRestSound(): Promise<string | null> {
+  const res = await DocumentPicker.getDocumentAsync({ type: AUDIO_TYPES, copyToCacheDirectory: true });
+  const picked = res.assets?.[0];
+  if (!picked) return null;
+  const ext = (picked.name.split('.').pop() ?? 'wav').toLowerCase();
+  // Copy under a fixed name so iOS never has to resolve spaces or accents in a path.
+  const file = `${CUSTOM}.${ext}`;
+  if (!(await place(new File(picked.uri), file))) throw new Error('Could not copy that file into place');
+  useUi.getState().setCustomSound(file, picked.name);
+  return picked.name;
+}
+
+/** What to pass as the notification's `sound`: a filename in Library/Sounds, or true for
+ *  the system sound. Android always gets the system sound, because a channel's sound is
+ *  fixed when the channel is created. */
+async function alertSound(): Promise<string | true> {
+  if (Platform.OS !== 'ios') return true;
+  const { restSound, customSound } = useUi.getState();
+  if (restSound === 'system') return true;
+  if (restSound === 'custom') {
     try {
-      if (Platform.OS !== 'ios') return null;
-      const dir = new Directory(Paths.document.uri.replace(/\/Documents\/.*$/, '/Library/Sounds/'));
-      if (!dir.exists) dir.create({ intermediates: true });
-      const dest = new File(dir, BELL);
-      const asset = Asset.fromModule(require('../../assets/bell.wav'));
-      await asset.downloadAsync();
-      if (!asset.localUri) return null;
-      const src = new File(asset.localUri);
-      if (dest.exists && dest.size === src.size) return BELL;
-      await src.copy(dest, { overwrite: true });
-      return BELL;
+      return customSound && new File(soundsDir(), customSound).exists ? customSound : true;
     } catch {
-      return null;
+      return true;
     }
-  })();
-  return bell;
+  }
+  return (await installBell()) ?? true;
 }
 
 // Warm the copy at startup so the first completed set doesn't wait on it.
-installBell();
+if (useUi.getState().restSound === 'bell') installBell();
 
 let permissionAsked = false;
 
@@ -65,7 +108,7 @@ export async function scheduleRestDone(seconds: number, body: string): Promise<s
     if (status !== 'granted') await Notifications.requestPermissionsAsync();
   }
   if (seconds < 1) return null;
-  const sound = (await installBell()) ?? true;
+  const sound = await alertSound();
   try {
     return await Notifications.scheduleNotificationAsync({
       content: { title: 'Rest done', body, sound },
